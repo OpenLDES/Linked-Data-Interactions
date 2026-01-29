@@ -1,1 +1,1 @@
-be.vlaanderen.informatievlaanderen.ldes.ldi.processors.NgsiV2ToLdProcessor
+org.openldes.ldi.processors.NgsiV2ToLdProcessor

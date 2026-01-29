@@ -1,8 +1,8 @@
 package ldes.client.treenodefetcher.domain.valueobjects;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.valueobjects.GetRequest;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.valueobjects.Request;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.valueobjects.RequestHeader;
+import org.openldes.ldi.requestexecutor.valueobjects.GetRequest;
+import org.openldes.ldi.requestexecutor.valueobjects.Request;
+import org.openldes.ldi.requestexecutor.valueobjects.RequestHeader;
 import org.apache.jena.riot.Lang;
 import org.junit.jupiter.api.Test;
 

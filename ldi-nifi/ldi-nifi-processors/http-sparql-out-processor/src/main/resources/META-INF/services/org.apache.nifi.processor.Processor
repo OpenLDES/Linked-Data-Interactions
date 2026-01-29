@@ -1,1 +1,1 @@
-be.vlaanderen.informatievlaanderen.ldes.ldi.processors.HttpSparqlOutProcessor
+org.openldes.ldi.processors.HttpSparqlOutProcessor

@@ -1,6 +1,6 @@
 package ldes.client.treenodesupplier.membersuppliers;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.VersionMaterialiser;
+import org.openldes.ldi.VersionMaterialiser;
 import ldes.client.treenodesupplier.domain.valueobject.SuppliedMember;
 import org.apache.jena.rdf.model.Model;
 

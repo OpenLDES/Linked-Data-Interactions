@@ -1,11 +1,11 @@
 package ldes.client.treenodesupplier;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.HibernateUtil;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.postgres.PostgresProperties;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.services.RequestExecutorFactory;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.sqlite.SqliteProperties;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.timestampextractor.TimestampFromCurrentTimeExtractor;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.timestampextractor.TimestampFromPathExtractor;
+import org.openldes.ldi.HibernateUtil;
+import org.openldes.ldi.postgres.PostgresProperties;
+import org.openldes.ldi.requestexecutor.services.RequestExecutorFactory;
+import org.openldes.ldi.sqlite.SqliteProperties;
+import org.openldes.ldi.timestampextractor.TimestampFromCurrentTimeExtractor;
+import org.openldes.ldi.timestampextractor.TimestampFromPathExtractor;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;

@@ -1,1 +1,1 @@
-be.vlaanderen.informatievlaanderen.ldes.ldi.processors.SkolemisationTransformerProcessor
+org.openldes.ldi.processors.SkolemisationTransformerProcessor

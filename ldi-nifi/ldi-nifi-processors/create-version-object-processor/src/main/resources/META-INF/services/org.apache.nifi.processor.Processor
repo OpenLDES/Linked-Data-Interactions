@@ -1,1 +1,1 @@
-be.vlaanderen.informatievlaanderen.ldes.ldi.processors.CreateVersionObjectProcessor
+org.openldes.ldi.processors.CreateVersionObjectProcessor

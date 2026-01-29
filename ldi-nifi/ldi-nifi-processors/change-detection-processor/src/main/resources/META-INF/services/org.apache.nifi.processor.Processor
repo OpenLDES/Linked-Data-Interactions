@@ -1,1 +1,1 @@
-be.vlaanderen.informatievlaanderen.ldes.ldi.processors.ChangeDetectionFilterProcessor
+org.openldes.ldi.processors.ChangeDetectionFilterProcessor

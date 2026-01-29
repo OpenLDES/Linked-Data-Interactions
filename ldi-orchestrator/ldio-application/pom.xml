@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi</groupId>
+        <groupId>org.openldes.ldi</groupId>
         <artifactId>ldi-orchestrator</artifactId>
-        <version>2.15.0-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+    <groupId>org.openldes.ldio</groupId>
     <artifactId>ldio-application</artifactId>
 
     <dependencies>
@@ -37,19 +37,19 @@
             <artifactId>spring-boot-autoconfigure</artifactId>
         </dependency>
         <dependency>
-            <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi</groupId>
+            <groupId>org.openldes.ldi</groupId>
             <artifactId>ldi-api</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi</groupId>
+            <groupId>org.openldes.ldi</groupId>
             <artifactId>ldio-common</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
-            <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi</groupId>
+            <groupId>org.openldes.ldi</groupId>
             <artifactId>ldio-instrumentation</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
@@ -161,7 +161,7 @@
             <id>ldio-http-in</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-http-in</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -171,7 +171,7 @@
             <id>ldio-http-in-poller</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-http-in-poller</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -181,7 +181,7 @@
             <id>ldio-kafka</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-kafka</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -191,7 +191,7 @@
             <id>ldio-amqp</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-amqp</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -201,7 +201,7 @@
             <id>ldio-ldes-client</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-ldes-client</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -211,7 +211,7 @@
             <id>ldio-ldes-client-connector</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-ldes-client-connector</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -221,7 +221,7 @@
             <id>ldio-archive-file-in</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-archive-file-in</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -231,7 +231,7 @@
             <id>ldio-rdf-adapter</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-rdf-adapter</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -241,7 +241,7 @@
             <id>ldio-rml-adapter</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-rml-adapter</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -251,7 +251,7 @@
             <id>ldio-ngsiv2-to-ld-adapter</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-ngsiv2-to-ld-adapter</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -261,7 +261,7 @@
             <id>ldio-json-to-ld-adapter</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-json-to-ld-adapter</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -271,7 +271,7 @@
             <id>ldio-sparql-construct</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-sparql-construct</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -281,7 +281,7 @@
             <id>ldio-geojson-to-wkt</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-geojson-to-wkt</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -291,7 +291,7 @@
             <id>ldio-http-enricher</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-http-enricher</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -301,7 +301,7 @@
             <id>ldio-version-object-creator</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-version-object-creator</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -311,7 +311,7 @@
             <id>ldio-version-materialiser</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-version-materialiser</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -321,7 +321,7 @@
             <id>ldio-http-out</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-http-out</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -331,7 +331,7 @@
             <id>ldio-console-out</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-console-out</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -341,7 +341,7 @@
             <id>ldio-azure-blob-out</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-azure-blob-out</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -351,7 +351,7 @@
             <id>ldio-file-out</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-file-out</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -361,7 +361,7 @@
             <id>ldio-repository-materialiser</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-repository-sink</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -371,7 +371,7 @@
             <id>ldio-noop-out</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-noop-out</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -381,7 +381,7 @@
             <id>ldio-change-detection-filter</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-change-detection-filter</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -391,7 +391,7 @@
             <id>ldio-http-sparql-out</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-http-sparql-out</artifactId>
                     <version>${project.version}</version>
                 </dependency>
@@ -401,7 +401,7 @@
             <id>ldio-skolemisation-transformer</id>
             <dependencies>
                 <dependency>
-                    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldio</groupId>
+                    <groupId>org.openldes.ldio</groupId>
                     <artifactId>ldio-skolemisation-transformer</artifactId>
                     <version>${project.version}</version>
                 </dependency>

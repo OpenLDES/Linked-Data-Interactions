@@ -73,7 +73,7 @@ Make sure you
     ````yaml
     logging:
         level:
-            be.vlaanderen.informatievlaanderen: DEBUG
+            org.openldes: DEBUG
     ````
 * Add the ```debug: true``` property to your transformer or output config.
 

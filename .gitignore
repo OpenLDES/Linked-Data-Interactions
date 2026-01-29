@@ -46,6 +46,9 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
+*.db
+ldi-orchestrator/ldio-connectors/ldio-repository-sink/materialisation
+!ldi-orchestrator/ldio-connectors/ldio-repository-sink/materialisation/uncommitted-members-1764946658.ttl
 
 ###
 ### Java
@@ -203,7 +206,7 @@ build/
 #
 ###############################################################################
 # Created by git for backups. To disable backups in Git:
-# $ git be.vlaanderen.informatievlaanderen.ldes.ldi.config --global mergetool.keepBackup false
+# $ git org.openldes.ldi.config --global mergetool.keepBackup false
 *.orig
 
 # Created by git when using merge tools for conflicts
@@ -234,7 +237,7 @@ ehthumbs_vista.db
 # Dump file
 *.stackdump
 
-# Folder be.vlaanderen.informatievlaanderen.ldes.ldi.config file
+# Folder org.openldes.ldi.config file
 [Dd]esktop.ini
 
 # Recycle Bin used on file shares

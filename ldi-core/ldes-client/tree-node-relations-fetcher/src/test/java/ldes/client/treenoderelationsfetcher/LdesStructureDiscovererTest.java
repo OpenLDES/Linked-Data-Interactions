@@ -1,7 +1,7 @@
 package ldes.client.treenoderelationsfetcher;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.executor.RequestExecutor;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.services.RequestExecutorFactory;
+import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.requestexecutor.services.RequestExecutorFactory;
 import ldes.client.treenoderelationsfetcher.domain.valueobjects.LdesRelation;
 import ldes.client.treenoderelationsfetcher.domain.valueobjects.LdesStructure;
 import org.apache.commons.io.FileUtils;

@@ -1,6 +1,6 @@
 package ldes.client.treenodesupplier.repository.mapper;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.entities.MemberRecordEntity;
+import org.openldes.ldi.entities.MemberRecordEntity;
 import ldes.client.treenodesupplier.domain.entities.MemberRecord;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
