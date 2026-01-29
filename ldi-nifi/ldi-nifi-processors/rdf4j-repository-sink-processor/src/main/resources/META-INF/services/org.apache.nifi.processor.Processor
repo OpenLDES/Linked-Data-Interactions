@@ -1,1 +1,1 @@
-be.vlaanderen.informatievlaanderen.ldes.ldi.processors.RDF4JRepositorySinkProcessor
+org.openldes.ldi.processors.RDF4JRepositorySinkProcessor

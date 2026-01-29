@@ -1,6 +1,6 @@
 package ldes.client.treenodesupplier;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.VersionMaterialiser;
+import org.openldes.ldi.VersionMaterialiser;
 import ldes.client.treenodesupplier.domain.valueobject.SuppliedMember;
 import ldes.client.treenodesupplier.membersuppliers.MemberSupplier;
 import ldes.client.treenodesupplier.membersuppliers.VersionMaterialisedMemberSupplier;

@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>ldes-client</artifactId>
-        <groupId>be.vlaanderen.informatievlaanderen.ldes.client</groupId>
+        <groupId>org.openldes.client</groupId>
         <version>2.15.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>

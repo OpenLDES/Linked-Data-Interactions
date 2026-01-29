@@ -1,0 +1,34 @@
+package org.openldes.ldi.requestexecutor.executor.noauth;
+
+import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.requestexecutor.executor.RequestExecutorSupplier;
+import org.apache.http.Header;
+import org.apache.http.impl.client.HttpClientBuilder;
+
+import java.util.Collection;
+
+public class DefaultConfig implements RequestExecutorSupplier {
+
+	private final Collection<Header> headers;
+	private final boolean enableRedirectHandling;
+
+	public DefaultConfig(Collection<Header> headers, boolean enableRedirectHandling) {
+		this.headers = headers;
+        this.enableRedirectHandling = enableRedirectHandling;
+    }
+
+	/**
+	 *
+	 * @return instance of DefaultRequestExecutor
+	 */
+	@Override
+	public RequestExecutor createRequestExecutor() {
+		final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+		if (!enableRedirectHandling) {
+			httpClientBuilder.disableRedirectHandling();
+		}
+
+		return new DefaultRequestExecutor(httpClientBuilder.setDefaultHeaders(headers).build());
+	}
+
+}

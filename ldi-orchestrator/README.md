@@ -26,7 +26,7 @@ What follows is a template of a default orchestrator. This will need to be exten
 
 ### 1. Input
 
-#### 1.1 LdioHttpIn (be.vlaanderen.informatievlaanderen.ldes.ldio.LdioHttpIn)
+#### 1.1 LdioHttpIn (org.openldes.ldio.LdioHttpIn)
 
 The LdioHttpIn serves as a basic Http Listening component which allows the user to send Linked Data as Input for a
 transformation workflow.
@@ -34,7 +34,7 @@ transformation workflow.
 To configure this processor, the following config can be added:
 
 ```yaml
-  name: be.vlaanderen.informatievlaanderen.ldes.ldio.LdioHttpIn
+  name: org.openldes.ldio.LdioHttpIn
 ```
 
 The port can be configured through the default spring property:
@@ -45,27 +45,27 @@ The port can be configured through the default spring property:
 
 ### 2. Output
 
-#### 2.1 LdioHttpOut (be.vlaanderen.informatievlaanderen.ldes.ldio.LdioHttpOut)
+#### 2.1 LdioHttpOut (org.openldes.ldio.LdioHttpOut)
 
 The LdioHttpOut will perform a basic HTTP POST of the transformed Linked Data towards a provided endpoint
 
 To configure this processor, the following config can be added:
 
 ```yaml
-  name: be.vlaanderen.informatievlaanderen.ldes.ldio.LdioHttpOut
+  name: org.openldes.ldio.LdioHttpOut
   config:
     content-type: { desired content type to send to endpoint. By default, this will be set to 'application/n-quads'}
     endpoint: { Http endpoint to send transformed linked data to }
   ```
 
-#### 2.2 LdioConsoleOut (be.vlaanderen.informatievlaanderen.ldes.ldio.LdioConsoleOut)
+#### 2.2 LdioConsoleOut (org.openldes.ldio.LdioConsoleOut)
 
 The LdioConsoleOut provides a debug tool to locally run a transformation and checking its endpoint in the console.
 
 To configure this processor, the following config can be added:
 
 ```yaml
-  name: be.vlaanderen.informatievlaanderen.ldes.ldio.LdioConsoleOut
+  name: org.openldes.ldio.LdioConsoleOut
   config:
     content-type: { desired content type to send to endpoint. By default, this will be sent as 'application/n-quads'}
 ```
@@ -76,12 +76,12 @@ Each LDI Component will be wrapped as a LDIO component. For further details on t
 
 ### 1. Transformers
 
-#### 1.1 SparqlConstructTransformer (be.vlaanderen.informatievlaanderen.ldes.ldi.SparqlConstructTransformer)
+#### 1.1 SparqlConstructTransformer (org.openldes.ldi.SparqlConstructTransformer)
 
 To configure this processor, the following config can be added:
 
 ```yaml
-  name: be.vlaanderen.informatievlaanderen.ldes.ldi.SparqlConstructTransformer
+  name: org.openldes.ldi.SparqlConstructTransformer
   config:
     query: { SPARQL Construct query to transform data }
     infer: { Flag that allows the result of the construct query to be added to the provided linked data }

@@ -1,7 +1,7 @@
 package ldes.client.eventstreamproperties;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.executor.RequestExecutor;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.services.RequestExecutorFactory;
+import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.requestexecutor.services.RequestExecutorFactory;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import ldes.client.eventstreamproperties.valueobjects.EventStreamProperties;
 import ldes.client.eventstreamproperties.valueobjects.PropertiesRequest;

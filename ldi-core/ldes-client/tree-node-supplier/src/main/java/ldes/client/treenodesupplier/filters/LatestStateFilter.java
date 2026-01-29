@@ -1,7 +1,7 @@
 package ldes.client.treenodesupplier.filters;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.timestampextractor.TimestampExtractor;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.timestampextractor.TimestampFromPathExtractor;
+import org.openldes.ldi.timestampextractor.TimestampExtractor;
+import org.openldes.ldi.timestampextractor.TimestampFromPathExtractor;
 import ldes.client.treenodesupplier.domain.entities.MemberVersionRecord;
 import ldes.client.treenodesupplier.domain.valueobject.SuppliedMember;
 import ldes.client.treenodesupplier.repository.MemberVersionRepository;

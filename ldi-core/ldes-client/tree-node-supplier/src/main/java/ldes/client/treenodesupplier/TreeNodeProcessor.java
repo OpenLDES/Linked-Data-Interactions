@@ -1,8 +1,8 @@
 package ldes.client.treenodesupplier;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.exceptions.HttpRequestException;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.executor.RequestExecutor;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.timestampextractor.TimestampExtractor;
+import org.openldes.ldi.requestexecutor.exceptions.HttpRequestException;
+import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.timestampextractor.TimestampExtractor;
 import ldes.client.treenodefetcher.TreeNodeFetcher;
 import ldes.client.treenodefetcher.domain.entities.TreeMember;
 import ldes.client.treenodefetcher.domain.valueobjects.TreeNodeResponse;

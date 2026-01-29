@@ -1,10 +1,10 @@
 package ldes.client.startingtreenode;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.executor.RequestExecutor;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.valueobjects.GetRequest;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.valueobjects.RequestHeader;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.valueobjects.RequestHeaders;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.valueobjects.Response;
+import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.requestexecutor.valueobjects.GetRequest;
+import org.openldes.ldi.requestexecutor.valueobjects.RequestHeader;
+import org.openldes.ldi.requestexecutor.valueobjects.RequestHeaders;
+import org.openldes.ldi.requestexecutor.valueobjects.Response;
 import ldes.client.startingtreenode.domain.valueobjects.StartingNodeRequest;
 import ldes.client.startingtreenode.exception.StartingNodeNotFoundException;
 import org.apache.http.HttpHeaders;

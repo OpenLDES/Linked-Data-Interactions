@@ -18,7 +18,7 @@ Its purpose is to repeatedly call an external endpoint after a given interval an
 ```agsl
 orchestrator:
   input:
-    name: be.vlaanderen.informatievlaanderen.ldes.ldio.LdioHttpInPoller
+    name: org.openldes.ldio.LdioHttpInPoller
     config:
       url: http://localhost:8080/get
       interval: PT1M

@@ -1,13 +1,13 @@
 package ldes.client.performance;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.HibernateUtil;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.postgres.PostgresProperties;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.executor.RequestExecutor;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.services.RequestExecutorFactory;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.sqlite.SqliteProperties;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.timestampextractor.TimestampExtractor;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.timestampextractor.TimestampFromCurrentTimeExtractor;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.valueobjects.StatePersistenceStrategy;
+import org.openldes.ldi.HibernateUtil;
+import org.openldes.ldi.postgres.PostgresProperties;
+import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.requestexecutor.services.RequestExecutorFactory;
+import org.openldes.ldi.sqlite.SqliteProperties;
+import org.openldes.ldi.timestampextractor.TimestampExtractor;
+import org.openldes.ldi.timestampextractor.TimestampFromCurrentTimeExtractor;
+import org.openldes.ldi.valueobjects.StatePersistenceStrategy;
 import ldes.client.treenodesupplier.TreeNodeProcessor;
 import ldes.client.treenodesupplier.domain.valueobject.LdesClientRepositories;
 import ldes.client.treenodesupplier.domain.valueobject.LdesMetaData;

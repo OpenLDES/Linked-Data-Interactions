@@ -1,6 +1,6 @@
 package ldes.client.treenodesupplier.repository.mapper;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.entities.TreeNodeRecordEntity;
+import org.openldes.ldi.entities.TreeNodeRecordEntity;
 import ldes.client.treenodesupplier.domain.entities.TreeNodeRecord;
 import ldes.client.treenodesupplier.domain.valueobject.TreeNodeStatus;
 

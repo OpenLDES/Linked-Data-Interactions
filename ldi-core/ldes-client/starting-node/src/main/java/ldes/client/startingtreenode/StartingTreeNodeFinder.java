@@ -1,7 +1,7 @@
 package ldes.client.startingtreenode;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.executor.RequestExecutor;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.valueobjects.Response;
+import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.requestexecutor.valueobjects.Response;
 import ldes.client.startingtreenode.domain.valueobjects.*;
 import ldes.client.startingtreenode.exception.StartingNodeNotFoundException;
 import org.apache.jena.rdf.model.Model;

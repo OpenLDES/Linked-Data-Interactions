@@ -1,6 +1,6 @@
 package ldes.client.treenodesupplier.repository.mapper;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.entities.MemberVersionRecordEntity;
+import org.openldes.ldi.entities.MemberVersionRecordEntity;
 import ldes.client.treenodesupplier.domain.entities.MemberVersionRecord;
 
 public class MemberVersionRecordEntityMapper {

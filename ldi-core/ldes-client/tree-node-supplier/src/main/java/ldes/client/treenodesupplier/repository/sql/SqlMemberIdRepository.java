@@ -1,6 +1,6 @@
 package ldes.client.treenodesupplier.repository.sql;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.StatelessQueryExecutor;
+import org.openldes.ldi.StatelessQueryExecutor;
 import ldes.client.treenodesupplier.repository.MemberIdRepository;
 import org.hibernate.Session;
 import org.hibernate.StatelessSession;

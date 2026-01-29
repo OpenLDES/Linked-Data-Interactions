@@ -12,8 +12,8 @@ on:
   workflow_dispatch:
 
 env:
-  BASE_URL: "/VSDS-LDESServer4J"
-  TITLE: "VSDS-Linked-Data-Interactions"
+  BASE_URL: "/Linked-Data-Interactions"
+  TITLE: "Linked-Data-Interactions"
   GIT_CONFIG_USERNAME: ${{ vars.GIT_CONFIG_USERNAME }}
   GIT_CONFIG_EMAIL: ${{ vars.GIT_CONFIG_EMAIL }}
   DEPLOY_DOCS_PAT: ${{ secrets.DEPLOY_DOCS_PAT }}

@@ -1,1 +1,1 @@
-be.vlaanderen.informatievlaanderen.ldes.ldi.processors.RmlAdapterProcessor
+org.openldes.ldi.processors.RmlAdapterProcessor

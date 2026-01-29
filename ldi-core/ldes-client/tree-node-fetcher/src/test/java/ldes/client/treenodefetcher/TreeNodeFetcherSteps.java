@@ -1,7 +1,7 @@
 package ldes.client.treenodefetcher;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.services.RequestExecutorFactory;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.timestampextractor.TimestampFromCurrentTimeExtractor;
+import org.openldes.ldi.requestexecutor.services.RequestExecutorFactory;
+import org.openldes.ldi.timestampextractor.TimestampFromCurrentTimeExtractor;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;

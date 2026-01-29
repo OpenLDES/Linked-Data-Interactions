@@ -1,1 +1,1 @@
-be.vlaanderen.informatievlaanderen.ldes.ldi.processors.VersionMaterialiseProcessor
+org.openldes.ldi.processors.VersionMaterialiseProcessor

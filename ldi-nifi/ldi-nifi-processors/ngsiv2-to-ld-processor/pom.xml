@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <artifactId>ldi-nifi-processors</artifactId>
-        <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi.nifi</groupId>
+        <groupId>org.openldes.ldi.nifi</groupId>
         <version>2.15.0-SNAPSHOT</version>
     </parent>
 
@@ -15,12 +15,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi</groupId>
+            <groupId>org.openldes.ldi</groupId>
             <artifactId>ldi-nifi-common</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi</groupId>
+            <groupId>org.openldes.ldi</groupId>
             <artifactId>ngsiv2-to-ld-adapter</artifactId>
             <version>${project.version}</version>
         </dependency>
