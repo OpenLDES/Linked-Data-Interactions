@@ -46,6 +46,9 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
+*.db
+ldi-orchestrator/ldio-connectors/ldio-repository-sink/materialisation
+!ldi-orchestrator/ldio-connectors/ldio-repository-sink/materialisation/uncommitted-members-1764946658.ttl
 
 ###
 ### Java
