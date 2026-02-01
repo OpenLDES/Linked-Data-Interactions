@@ -631,14 +631,14 @@
   },"90": {
     "doc": "Relational Database Out",
     "title": "LDIO Relational Database Out",
-    "content": "Ldio:LdioRdbOut . The LDIO RDB Out will transform the RDF model into a relational database by using a SPARQL query. You have to create the database table beforehand. Then, you can use a SPARQL query to insert the data into the table. All . ",
+    "content": "Ldio:LdioRdbOut . The LDIO RDB Out will transform the RDF model into a relational database by using a SPARQL query. You have to create the database table beforehand. Then, you can use a SPARQL query to insert the data into the table. All variable names will be mapped to the column names of the database table. You can set the ignore-duplicate-key-exception when you have duplicate key constraints on your table, and when you try to insert multiple times the same data. When you set this to true, the pipeline will not halt, and will proceed with the next member(s). ",
     "url": "/Linked-Data-Interactions/3.0.0-SNAPSHOT/ldio/ldio-outputs/ldio-rdb-out#ldio-relational-database-out",
     
     "relUrl": "/ldio/ldio-outputs/ldio-rdb-out#ldio-relational-database-out"
   },"91": {
     "doc": "Relational Database Out",
     "title": "Config",
-    "content": "| Property | Description | Required | Default | Supported values | Example | . | table-name |   | Yes | N/A | String | sensor | . | sparql-select-query |   | Yes | N/A | String |   | . | ignore-duplicate-key-exception |   | No | false | Boolean value | true | . ",
+    "content": "| Property | Description | Required | Default | Supported values | Example | . | table-name | The name of the database table where the data will be stored | Yes | N/A | String | sensor | . | sparql-select-query | A SPARQL SELECT query to format the members into a tabular format | Yes | N/A | String |   | . | ignore-duplicate-key-exception | Change the behaviour of the pipeline when you have a duplicate key constraint exception | No | false | Boolean value | true | . ",
     "url": "/Linked-Data-Interactions/3.0.0-SNAPSHOT/ldio/ldio-outputs/ldio-rdb-out#config",
     
     "relUrl": "/ldio/ldio-outputs/ldio-rdb-out#config"
