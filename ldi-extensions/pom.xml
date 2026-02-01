@@ -4,12 +4,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>be.vlaanderen.informatievlaanderen.ldes</groupId>
+        <groupId>org.openldes</groupId>
         <artifactId>linked-data-interactions</artifactId>
-        <version>2.15.0-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi</groupId>
+    <groupId>org.openldes.ldi</groupId>
     <artifactId>ldi-extensions</artifactId>
     <packaging>pom</packaging>
     <modules>
@@ -40,21 +40,21 @@
                 <version>${spring-boot.version}</version>
             </dependency>
 
-            <!-- VSDS -->
+            <!-- OpenLDES -->
             <dependency>
-                <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi</groupId>
+                <groupId>org.openldes.ldi</groupId>
                 <artifactId>request-executor</artifactId>
                 <version>${project.version}</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
-                <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi</groupId>
+                <groupId>org.openldes.ldi</groupId>
                 <artifactId>ldi-common</artifactId>
                 <version>${project.version}</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
-                <groupId>be.vlaanderen.informatievlaanderen.ldes.client</groupId>
+                <groupId>org.openldes.client</groupId>
                 <artifactId>tree-node-relations-fetcher</artifactId>
                 <version>${project.version}</version>
                 <scope>compile</scope>

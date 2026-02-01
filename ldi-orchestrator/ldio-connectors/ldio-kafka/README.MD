@@ -14,7 +14,7 @@ The following configuration is supported:
 
 ```yaml
 outputs:
-  - name: be.vlaanderen.informatievlaanderen.ldes.ldio.LdioKafkaOut
+  - name: org.openldes.ldio.LdioKafkaOut
     config:
       content-type: { any content type supported by Apache Jena }
       topics: { comma separated list of topics }
@@ -25,7 +25,7 @@ outputs:
 Example:
 ```yaml
 outputs:
-  - name: be.vlaanderen.informatievlaanderen.ldes.ldio.LdioKafkaOut
+  - name: org.openldes.ldio.LdioKafkaOut
     config:
       content-type: application/n-quads
       topics: quickstart-events
@@ -39,7 +39,7 @@ The following configuration is supported:
 
 ```yaml
 outputs:
-  - name: be.vlaanderen.informatievlaanderen.ldes.ldio.LdioKafkaOut
+  - name: org.openldes.ldio.LdioKafkaOut
     config:
       content-type: { any content type supported by Apache Jena }
       topics: { comma separated list of topics }
@@ -53,7 +53,7 @@ outputs:
 Example:
 ```yaml
 outputs:
-  - name: be.vlaanderen.informatievlaanderen.ldes.ldio.LdioKafkaOut
+  - name: org.openldes.ldio.LdioKafkaOut
     config:
       content-type: application/n-quads
       topics: quickstart-events
@@ -88,7 +88,7 @@ Example
 
 ```yaml
 outputs:
-  - name: be.vlaanderen.informatievlaanderen.ldes.ldio.LdioKafkaOut
+  - name: org.openldes.ldio.LdioKafkaOut
     config:
       content-type: application/n-quads
       bootstrap-servers: localhost:9092

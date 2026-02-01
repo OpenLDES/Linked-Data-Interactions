@@ -1,5 +1,5 @@
-import be.vlaanderen.informatievlaanderen.ldes.ldi.RdfAdapter;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.types.LdiAdapter;
+import org.openldes.ldi.RdfAdapter;
+import org.openldes.ldi.types.LdiAdapter;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFParserBuilder;

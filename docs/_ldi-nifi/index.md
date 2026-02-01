@@ -42,7 +42,7 @@ The processors can be imported into a NiFi docker instance via volume binding:
     docker compose up
     ````
 6. Log in at `https://localhost:8443/nifi` with the credentials mentioned in step 1
-7. All downloaded extensions are available under the ``be.vlaanderen.informatievlaanderen.ldes.ldi.nifi`` group.
+7. All downloaded extensions are available under the ``org.openldes.ldi.nifi`` group.
 
 {: .note }
 All documentation and notes about configuration are available in the NiFi component itself.
@@ -72,4 +72,4 @@ This can be done by following these steps:
 7. Use the service in the processors that require it.
 
 [Apache NiFi]: https://nifi.apache.org/
-[nexus repository]: https://s01.oss.sonatype.org/#nexus-search;quick~be.vlaanderen.informatievlaanderen.ldes.ldi.nifi
+[nexus repository]: https://s01.oss.sonatype.org/#nexus-search;quick~org.openldes.ldi.nifi

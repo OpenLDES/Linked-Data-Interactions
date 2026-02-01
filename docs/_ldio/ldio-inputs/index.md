@@ -8,6 +8,6 @@ nav_order: 3
 
 # Linked Data Orchestrator Inputs
 
-The LDI Core module contains the components maintained by the VSDS team in order to accommodate the onboarding of LDES onboarders.
+The LDI Core module contains the components maintained by the OpenLDES team in order to accommodate the onboarding of LDES onboarders.
 
 Each component can be wrapped in a desired implementation framework (LDI-orchestrator, NiFi, ...) to be used.

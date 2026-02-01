@@ -42,7 +42,7 @@ java -jar ./target/ldes-discoverer.jar --url="http://ldes-server/observations/by
 ### Docker
 
 ```shell
-docker run ghcr.io/informatievlaanderen/ldes-discoverer --url="http://ldes-server/observations/by-time?year=2023&month=05&day=11"
+docker run ghcr.io/openldes/ldes-discoverer --url="http://ldes-server/observations/by-time?year=2023&month=05&day=11"
 ```
 
 > **NOTE**: when an url contains a `&` symbol, which will be picked up by the shell as an operator.

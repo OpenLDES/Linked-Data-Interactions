@@ -1,9 +1,9 @@
 package ldes.client.eventstreamproperties.valueobjects;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.valueobjects.GetRequest;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.valueobjects.Request;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.valueobjects.RequestHeader;
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.valueobjects.RequestHeaders;
+import org.openldes.ldi.requestexecutor.valueobjects.GetRequest;
+import org.openldes.ldi.requestexecutor.valueobjects.Request;
+import org.openldes.ldi.requestexecutor.valueobjects.RequestHeader;
+import org.openldes.ldi.requestexecutor.valueobjects.RequestHeaders;
 import org.apache.http.HttpHeaders;
 import org.apache.jena.riot.Lang;
 

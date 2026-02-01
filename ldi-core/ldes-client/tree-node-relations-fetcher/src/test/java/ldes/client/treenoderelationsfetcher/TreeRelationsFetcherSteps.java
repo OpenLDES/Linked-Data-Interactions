@@ -1,6 +1,6 @@
 package ldes.client.treenoderelationsfetcher;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.requestexecutor.services.RequestExecutorFactory;
+import org.openldes.ldi.requestexecutor.services.RequestExecutorFactory;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;

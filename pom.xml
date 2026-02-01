@@ -5,12 +5,12 @@
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Java based pipeline framework to interact with Linked Data</description>
-    <url>https://informatievlaanderen.github.io/VSDS-Linked-Data-Interactions/</url>
+    <url>https://openldes.github.io/Linked-Data-Interactions/</url>
 
-    <groupId>be.vlaanderen.informatievlaanderen.ldes</groupId>
+    <groupId>org.openldes</groupId>
     <artifactId>linked-data-interactions</artifactId>
     <packaging>pom</packaging>
-    <version>2.15.0-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
 
     <modules>
         <module>ldi-api</module>
@@ -110,8 +110,8 @@
         <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
         <sonar.language>java</sonar.language>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-        <sonar.organization>informatievlaanderen</sonar.organization>
-        <sonar.projectKey>Informatievlaanderen_VSDS-Linked-Data-Interactions-${project.groupId}:${project.artifactId}</sonar.projectKey>
+        <sonar.organization>openldes</sonar.organization>
+        <sonar.projectKey>openldes_Linked-Data-Interactions-${project.groupId}:${project.artifactId}</sonar.projectKey>
     </properties>
 
     <build>
@@ -221,23 +221,23 @@
         <dependencies>
             <!-- LDI components -->
             <dependency>
-                <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi</groupId>
+                <groupId>org.openldes.ldi</groupId>
                 <artifactId>ldi-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi</groupId>
+                <groupId>org.openldes.ldi</groupId>
                 <artifactId>ldi-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>be.vlaanderen.informatievlaanderen.ldes.ldi</groupId>
+                <groupId>org.openldes.ldi</groupId>
                 <artifactId>ldi-infra-sql</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>be.vlaanderen.informatievlaanderen.ldes.client</groupId>
+                <groupId>org.openldes.client</groupId>
                 <artifactId>event-stream-properties-fetcher</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -454,7 +454,7 @@
     <scm>
         <connection>scm:git:${project.scm.url}</connection>
         <developerConnection>scm:git:${project.scm.url}</developerConnection>
-        <url>git@github.com:Informatievlaanderen/VSDS-Linked-Data-Interactions.git</url>
+        <url>git@github.com:openldes/Linked-Data-Interactions.git</url>
         <tag>HEAD</tag>
     </scm>
 

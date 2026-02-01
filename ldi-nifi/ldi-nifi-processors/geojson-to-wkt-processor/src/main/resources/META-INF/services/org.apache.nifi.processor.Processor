@@ -1,1 +1,1 @@
-be.vlaanderen.informatievlaanderen.ldes.ldi.processors.GeoJsonToWktProcessor
+org.openldes.ldi.processors.GeoJsonToWktProcessor

@@ -1,6 +1,6 @@
 package ldes.client.treenodesupplier.repository.sql;
 
-import be.vlaanderen.informatievlaanderen.ldes.ldi.entities.MemberVersionRecordEntity;
+import org.openldes.ldi.entities.MemberVersionRecordEntity;
 import ldes.client.treenodesupplier.domain.entities.MemberVersionRecord;
 import ldes.client.treenodesupplier.repository.MemberVersionRepository;
 import ldes.client.treenodesupplier.repository.mapper.MemberVersionRecordEntityMapper;

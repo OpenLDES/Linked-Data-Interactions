@@ -1,1 +1,1 @@
-be.vlaanderen.informatievlaanderen.ldes.ldi.processors.ArchiveFileInProcessor
+org.openldes.ldi.processors.ArchiveFileInProcessor

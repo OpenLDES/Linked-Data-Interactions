@@ -1,0 +1,123 @@
+package org.openldes.ldi.processors;
+
+import org.openldes.ldi.VersionObjectCreator;
+import org.openldes.ldi.extractor.EmptyPropertyExtractor;
+import org.openldes.ldi.extractor.PropertyExtractor;
+import org.openldes.ldi.extractor.PropertyPathExtractor;
+import org.openldes.ldi.processors.services.FlowManager;
+import org.openldes.ldi.rdf.parser.JenaContextProvider;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFParser;
+import org.apache.jena.sparql.util.Context;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+
+import static org.openldes.ldi.processors.config.CommonProperties.DATA_DESTINATION_FORMAT;
+import static org.openldes.ldi.processors.config.CommonProperties.getDataDestinationFormat;
+import static org.openldes.ldi.processors.config.CreateVersionObjectProcessorPropertyDescriptors.*;
+import static org.openldes.ldi.processors.config.CreateVersionObjectProcessorRelationships.*;
+import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
+import static org.apache.jena.riot.RDFLanguages.nameToLang;
+
+@SuppressWarnings("java:S2160") // nifi handles equals/hashcode of processors
+@Tags({ "ldes", "openldes" })
+@CapabilityDescription("Converts state objects to version objects")
+public class CreateVersionObjectProcessor extends AbstractProcessor {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(CreateVersionObjectProcessor.class);
+	private List<PropertyDescriptor> descriptors;
+	private Set<Relationship> relationships;
+	private VersionObjectCreator versionObjectCreator;
+	private Lang dataDestinationFormat;
+	private Context jenaContext;
+
+	@Override
+	protected void init(final ProcessorInitializationContext context) {
+		descriptors = new ArrayList<>();
+		descriptors.add(MEMBER_RDF_SYNTAX_TYPE);
+		descriptors.add(DELIMITER);
+		descriptors.add(DATE_OBSERVED_VALUE_RDF_PROPERTY);
+		descriptors.add(VERSION_OF_KEY);
+		descriptors.add(DATA_DESTINATION_FORMAT);
+		descriptors.add(DATA_INPUT_FORMAT);
+		descriptors.add(GENERATED_AT_TIME_PROPERTY);
+		descriptors = Collections.unmodifiableList(descriptors);
+
+		relationships = new HashSet<>();
+		relationships.add(DATA_RELATIONSHIP);
+		relationships.add(DATA_UNPARSEABLE_RELATIONSHIP);
+		relationships.add(VALUE_NOT_FOUND_RELATIONSHIP);
+		relationships = Collections.unmodifiableSet(relationships);
+
+		jenaContext = JenaContextProvider.create().getContext();
+	}
+
+	@Override
+	public Set<Relationship> getRelationships() {
+		return this.relationships;
+	}
+
+	@Override
+	public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+		return descriptors;
+	}
+
+	@OnScheduled
+	public void onScheduled(final ProcessContext context) {
+		String dateObservedProperty = getDateObservedValue(context);
+		createProperty(dateObservedProperty);
+		PropertyExtractor dateObservedPropertyExtractor = dateObservedProperty != null
+				? PropertyPathExtractor.from(dateObservedProperty)
+				: new EmptyPropertyExtractor();
+		List<Resource> memberTypes = getMemberRdfSyntaxTypes(context);
+		String delimiter = getDelimiter(context);
+		Property versionOfKey = getVersionOfKey(context);
+		Property generatedAtTimeProperty = getGeneratedAtTimeProperty(context);
+		dataDestinationFormat = getDataDestinationFormat(context);
+
+		versionObjectCreator = new VersionObjectCreator(dateObservedPropertyExtractor, memberTypes, delimiter,
+				generatedAtTimeProperty,
+				versionOfKey);
+	}
+
+	@Override
+	public void onTrigger(final ProcessContext context, final ProcessSession session) {
+		LOGGER.info("On Trigger");
+		FlowFile flowFile = session.get();
+		Lang lang = nameToLang(context.getProperty(DATA_INPUT_FORMAT).getValue());
+
+		String content = FlowManager.receiveData(session, flowFile);
+		try {
+			Model input =
+					RDFParser
+							.fromString(content)
+							.context(jenaContext)
+							.lang(lang)
+							.toModel();
+			Model versionObject = versionObjectCreator.transform(input);
+
+			if (versionObject.isIsomorphicWith(input)) {
+				FlowManager.sendRDFToRelation(session, flowFile, versionObject,
+						VALUE_NOT_FOUND_RELATIONSHIP, dataDestinationFormat);
+			} else {
+				FlowManager.sendRDFToRelation(session, flowFile, versionObject,
+						DATA_RELATIONSHIP, dataDestinationFormat);
+			}
+		} catch (Exception e) {
+			LOGGER.error(e.getMessage(), e);
+			FlowManager.sendRDFToRelation(session, flowFile, content, DATA_UNPARSEABLE_RELATIONSHIP, Lang.JSONLD);
+		}
+	}
+
+}

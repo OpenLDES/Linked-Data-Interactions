@@ -1,0 +1,41 @@
+package org.openldes.ldi.processors.wrappers;
+
+import org.openldes.ldi.processors.config.PersistenceProperties;
+import ldes.client.eventstreamproperties.valueobjects.EventStreamProperties;
+import ldes.client.treenodesupplier.domain.services.MemberSupplierWrapper;
+import ldes.client.treenodesupplier.filters.LatestStateFilter;
+import ldes.client.treenodesupplier.filters.MemberFilter;
+import ldes.client.treenodesupplier.membersuppliers.FilteredMemberSupplier;
+import ldes.client.treenodesupplier.membersuppliers.MemberSupplier;
+import ldes.client.treenodesupplier.repository.MemberVersionRepository;
+import org.apache.nifi.processor.ProcessContext;
+
+import static org.openldes.ldi.processors.config.LdesProcessorProperties.useLatestStateFilter;
+import static org.openldes.ldi.processors.config.LdesProcessorProperties.useVersionMaterialisation;
+
+public class LatestStateMemberSupplierWrapper extends MemberSupplierWrapper {
+	private final ProcessContext context;
+	private final MemberVersionRepository memberVersionRepository;
+	private final EventStreamProperties eventStreamProperties;
+
+	public LatestStateMemberSupplierWrapper(ProcessContext context, MemberVersionRepository memberVersionRepository, EventStreamProperties eventStreamProperties) {
+		this.context = context;
+		this.memberVersionRepository = memberVersionRepository;
+		this.eventStreamProperties = eventStreamProperties;
+	}
+
+	@Override
+	protected boolean shouldBeWrapped() {
+		return useVersionMaterialisation(context) && useLatestStateFilter(context);
+	}
+
+	@Override
+	protected MemberSupplier createWrappedMemberSupplier(MemberSupplier memberSupplier) {
+		return new FilteredMemberSupplier(memberSupplier, createMemberFilter());
+	}
+
+	private MemberFilter createMemberFilter() {
+		final boolean keepState = PersistenceProperties.stateKept(context);
+		return new LatestStateFilter(memberVersionRepository, keepState, eventStreamProperties.getTimestampPath(), eventStreamProperties.getVersionOfPath());
+	}
+}

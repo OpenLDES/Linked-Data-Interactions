@@ -1,1 +1,1 @@
-be.vlaanderen.informatievlaanderen.ldes.ldi.processors.LdesClientProcessor
+org.openldes.ldi.processors.LdesClientProcessor

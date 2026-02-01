@@ -45,7 +45,7 @@
           "owner": {
             "@id": "/api/v1/organisations/9c5926df-195d-01be-a40a-360bcd21d662",
             "@type": "Organisation",
-            "preferredName": "Agentschap Informatie Vlaanderen"
+            "preferredName": "OpenLDES"
           },
           "contactOrganisation": [],
           "zone": [
@@ -116,13 +116,13 @@
           "lastModifiedBy": {
             "@id": "/api/v1/organisations/9c5926df-195d-01be-a40a-360bcd21d662",
             "@type": "Organisation",
-            "preferredName": "Agentschap Informatie Vlaanderen"
+            "preferredName": "OpenLDES"
           },
           "createdOn": "2022-04-07T18:23:24.6840261Z",
           "createdBy": {
             "@id": "/api/v1/organisations/9c5926df-195d-01be-a40a-360bcd21d662",
             "@type": "Organisation",
-            "preferredName": "Agentschap Informatie Vlaanderen"
+            "preferredName": "OpenLDES"
           }
         },
         {

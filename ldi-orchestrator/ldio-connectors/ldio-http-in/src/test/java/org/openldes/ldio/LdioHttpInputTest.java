@@ -1,0 +1,76 @@
+package org.openldes.ldio;
+
+import org.openldes.ldi.services.ComponentExecutor;
+import org.openldes.ldi.types.LdiAdapter;
+import org.openldes.ldio.config.LdioHttpInAutoConfig;
+import org.openldes.ldio.pipeline.creation.valueobjects.ComponentProperties;
+import org.openldes.ldio.pipeline.creation.LdioInput;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.stream.Stream;
+
+import static org.openldes.ldio.LdioHttpInProcess.NAME;
+import static org.openldes.ldio.pipeline.status.PipelineStatusTrigger.HALT;
+import static org.openldes.ldio.pipeline.status.PipelineStatusTrigger.RESUME;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest(classes = LdioHttpInController.class)
+@AutoConfigureMockMvc
+class LdioHttpInputTest {
+	private final String endpoint = "endpoint";
+	@Autowired
+	private ApplicationEventPublisher eventPublisher;
+	@Autowired
+	private MockMvc mockMvc;
+	private LdiAdapter adapter;
+	private LdioInput input;
+
+	@BeforeEach
+	void setup() {
+		adapter = Mockito.mock(LdiAdapter.class);
+		ComponentExecutor executor = Mockito.mock(ComponentExecutor.class);
+
+		when(adapter.apply(any())).thenReturn(Stream.empty());
+
+		input = (LdioInput) new LdioHttpInAutoConfig.LdioHttpInConfigurator(eventPublisher, null)
+				.configure(adapter, executor, eventPublisher, new ComponentProperties(endpoint, NAME));
+	}
+
+	@Test
+	void testHttpEndpoint() throws Exception {
+		String content = "_:b0 <http://schema.org/name> \"Jane Doe\" .";
+		String contentType = "application/n-quads";
+		input.updateStatus(RESUME);
+
+		mockMvc.perform(post("/%s".formatted(endpoint)).content(content).contentType(contentType)).andExpect(status().isAccepted());
+
+		verify(adapter).apply(LdiAdapter.Content.of(content, contentType));
+	}
+	@Test
+	void when_PipelineIsHalted_Then_MessageIsNotProcessed() throws Exception {
+		String content = "_:b0 <http://schema.org/name> \"Jane Doe\" .";
+		String contentType = "application/n-quads";
+		input.updateStatus(HALT);
+
+		mockMvc.perform(post("/%s".formatted(endpoint)).content(content).contentType(contentType)).andExpect(status().is(503));
+
+		verifyNoInteractions(adapter);
+
+		input.updateStatus(RESUME);
+
+		mockMvc.perform(post("/%s".formatted(endpoint)).content(content).contentType(contentType)).andExpect(status().isAccepted());
+
+		verify(adapter).apply(LdiAdapter.Content.of(content, contentType));
+	}
+
+}

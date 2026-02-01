@@ -9,7 +9,7 @@ title: LDES Client
 The LDES Client is a component which can be used by data consumers to replicate and synchronize an LDES.  
 When replication or synchronization is halted, the LDES Client is able to resume where it has stopped. More information
 on how consumption of an LDES works can be
-found [here](https://informatievlaanderen.github.io/VSDS-Tech-Docs/introduction/LDES_client).
+found [here](https://openldes.github.io/openldes-tech-docs/introduction/LDES_client).
 
 ## Processing fragments
 
