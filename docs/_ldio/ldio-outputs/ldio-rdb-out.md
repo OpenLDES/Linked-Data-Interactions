@@ -11,16 +11,19 @@ title: Relational Database Out
 The LDIO RDB Out will transform the RDF model into a relational database by using a SPARQL query.
 
 You have to create the database table beforehand. Then, you can use a SPARQL query to insert the data into the table. 
-All 
+All variable names will be mapped to the column names of the database table.
+You can set the `ignore-duplicate-key-exception` when you have duplicate key constraints on your table,
+and when you try to insert multiple times the same data. When you set this to `true`, the pipeline will 
+not halt, and will proceed with the next member(s).
 
 ## Config
 
 
-| Property                         | Description | Required | Default | Supported values | Example |
-|----------------------------------|-------------|----------|---------|------------------|---------|
-| _table-name_                     |             | Yes      | N/A     | String           | sensor  |
-| _sparql-select-query_            |             | Yes      | N/A     | String           |         |
-| _ignore-duplicate-key-exception_ |             | No       | false   | Boolean value    | true    |
+| Property                         | Description                                                                             | Required | Default | Supported values | Example |
+|----------------------------------|-----------------------------------------------------------------------------------------|----------|---------|------------------|---------|
+| _table-name_                     | The name of the database table where the data will be stored                            | Yes      | N/A     | String           | sensor  |
+| _sparql-select-query_            | A SPARQL SELECT query to format the members into a tabular format                       | Yes      | N/A     | String           |         |
+| _ignore-duplicate-key-exception_ | Change the behaviour of the pipeline when you have a duplicate key constraint exception | No       | false   | Boolean value    | true    |
 
 
 ## Configuration Example
