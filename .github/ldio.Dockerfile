@@ -43,4 +43,4 @@ COPY ./ldi-orchestrator/ldio-connectors/ldio-http-sparql-out/target/ldio-http-sp
 RUN mkdir "state"
 RUN chmod -R 777 ./state
 
-CMD ["java", "-cp", "ldio-application.jar", "-Dloader.path=lib/", "org.springframework.boot.loader.launch.PropertiesLauncher"]
+CMD ["java", "-cp", "ldio-application.jar", "-Dloader.path=lib/", "org.springframework.boot.loader.PropertiesLauncher"]
