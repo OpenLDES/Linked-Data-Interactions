@@ -196,7 +196,7 @@ jobs:
             fi
           else
             echo "IMAGE_TAG=${{ needs.build.outputs.version }}-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
-            echo "IMAGES=${{ env.GHCR_REGISTRY }}/${{ github.GHCR_DISCOVERER_REPO }}" >> $GITHUB_ENV
+            echo "IMAGES=${{ env.GHCR_REGISTRY }}/${{ env.GHCR_DISCOVERER_REPO }}" >> $GITHUB_ENV
             echo "LATEST=latest" >> $GITHUB_ENV
           fi
       - name: Log in to the DockerHub Container registry
