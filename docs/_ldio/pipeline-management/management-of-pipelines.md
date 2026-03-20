@@ -39,12 +39,12 @@ A default pipeline looks as follows:
 
 Each pipeline is built up of the following components:
 
-* [LDIO Input](ldi-inputs): A component that will receive data (not necessarily LD) to then feed the LDIO pipeline.
-* [LDIO Adapter](ldi-adapters): To be used in conjunction with the LDIO Input, the LDIO Adapter will transform the
+* [LDIO Input](../ldio-inputs/index): A component that will receive data (not necessarily LD) to then feed the LDIO pipeline.
+* [LDIO Adapter](../ldio-adapters): To be used in conjunction with the LDIO Input, the LDIO Adapter will transform the
   provided content into and internal Linked Data model and sends it down the pipeline.
-* [LDIO Transformer](ldi-transformers): A component that takes in a Linked Data model, transforms/modifies it and then
+* [LDIO Transformer](../ldio-transformers): A component that takes in a Linked Data model, transforms/modifies it and then
   puts it back on the pipeline.
-* [LDIO Output](ldi-outputs): A component that will take in Linked Data and will export it to external sources.
+* [LDIO Output](../ldio-outputs): A component that will take in Linked Data and will export it to external sources.
 
 ````mermaid
 stateDiagram-v2
@@ -97,9 +97,10 @@ If this directory does not exist, it will be created.
 ## Pausing & Resuming LDIO
 
 Sometimes it might be preferred to pause an LDIO pipeline instead of deleting and recreating it.
-The endpoints to manage pipelines can be found [here](pipeline-api.md)
+The endpoints to manage pipelines can be found [here](./pipeline-api)
 
-The exact behaviour of a paused pipeline depends on its input component and can be found in the [documentation of these components](docs/_ldio/ldio-inputs/index.md).
+The exact behaviour of a paused pipeline depends on its input component and can be found in the 
+[documentation of these components](../ldio-inputs/index).
 However, it will always complete its current run through the pipeline and then seize sending any output.
 
 ## Using properties in pipelines

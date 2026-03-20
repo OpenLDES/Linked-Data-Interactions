@@ -10,7 +10,7 @@ A lightweight application maintained by the LDI team. Its creation came when a m
 
 ## Docker Compose
 
-The easiest way to start working with the LDIO is by using Docker. The image is located on the [Docker Hub](https://hub.docker.com/r/ldes/ldi-orchestrator/tags).
+The easiest way to start working with the LDIO is by using Docker. The image is located on the [Docker Hub](https://hub.docker.com/r/openldes/ldi-orchestrator/tags).
 
 To set up your environment, start by creating a new folder dedicated to your LDIO project. Within this folder, create two files: a `docker-compose.yml` and a YAML configuration file.
 The YAML file can be named according to your preference and can be added to the volume bindings pointing to the `ldio/application.yml` file.
