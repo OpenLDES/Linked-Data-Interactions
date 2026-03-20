@@ -21,7 +21,7 @@ Currently, we support 2 frameworks to use these building blocks in:
 As the OpenLDES team is rather small and focused on supporting the [OpenLDES project], we sometimes have to postpone full 
 integration of our building blocks in all supported frameworks.
 
-However, since the LDI project is open source, feel free to contribute and/or create issues at our [GitHub project][Linked Data Interactions]
+However, since the LDI project is open source, feel free to contribute and/or create issues at our [GitHub project][https://github.com/OpenLDES/Linked-Data-Interactions/issues]
 
 [Apache NiFi]: https://nifi.apache.org/
 [Linked Data Interactions]: https://github.com/openldes/Linked-Data-Interactions
