@@ -1,4 +1,4 @@
-name: 2. Build & Deploy Project
+name: 2.a. Build & Deploy Project
 
 on:
   push:
@@ -17,9 +17,12 @@ env:
   DOCKER_HUB_NAMESPACE: ${{ vars.DOCKER_NAMESPACE }}
   DEPLOY_PACKAGE_TO_OSSRH: ${{ vars.DEPLOY_PACKAGE_TO_OSSRH }}
   ANALYSE_PACKAGE: ${{ vars.ANALYSE_PACKAGE }}
+  JAVA_DISTRIBUTION: ${{ vars.JAVA_DISTRIBUTION }}
+  JAVA_VERSION: ${{ vars.JAVA_VERSION }}
 
 jobs:
   build:
+    name: build
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -27,58 +30,60 @@ jobs:
     outputs:
       version: ${{ steps.determine-version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - name: Set up Java
+        uses: actions/setup-java@v5
         with:
-          distribution: ${{ vars.JAVA_DISTRIBUTION }}
-          java-version: ${{ vars.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
       - name: Cache SonarCloud packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
       - name: Cache Maven packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-      # Maven
-      - name: Set up Maven Central Repository
-        uses: actions/setup-java@v4
+      - name: Set up Java with GPG private key
+        if: ${{ env.DEPLOY_PACKAGE_TO_OSSRH == true || env.ANALYSE_PACKAGE == true }}
+        uses: actions/setup-java@v5
         with:
-          java-version: ${{ vars.JAVA_VERSION }}
-          distribution: ${{ vars.JAVA_DISTRIBUTION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
           server-id: ossrh
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.OSSRH_GPG_SECRET_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
-
+      - name: Set up Java
+        if: ${{ env.DEPLOY_PACKAGE_TO_OSSRH != true }}
+        uses: actions/setup-java@v5
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
       - name: Determine version
         id: determine-version
         run: |
           export VERSION=$(mvn help:evaluate -Dexpression="project.version" -q -DforceStdout)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-      - name: Analyse package
+      - name: Analyse package and publish Sonar Cloud analysis
         if: ${{ env.ANALYSE_PACKAGE == true }}
         run: |
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }} -Dsonar.organization=${{ env.SONAR_ORGANIZATION }} -Pcoverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}
       - name: Create package
         if: ${{ env.ANALYSE_PACKAGE != true }}
         run: |
-          mvn -B package
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          mvn -B verify
       - name: Publish package
         if: ${{ env.DEPLOY_PACKAGE_TO_OSSRH == true }}
         run: |
@@ -90,7 +95,7 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}
       - name: Upload JARs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: artifacts
           path: |
@@ -108,13 +113,13 @@ jobs:
       packages: write
     needs: build
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - name: Download JARs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: artifacts
           path: .github
@@ -133,27 +138,27 @@ jobs:
           fi
       - name: Log in to the DockerHub Container registry
         if: github.ref_name == 'main'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Log in to the GitHub Container registry
         if: github.ref_name != 'main'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGES }}
           tags: |
             type=raw,value=${{env.IMAGE_TAG}}
             type=raw,value=${{env.LATEST}}
       - name: Build and push Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .github
           push: true
@@ -162,62 +167,61 @@ jobs:
           platforms: linux/amd64,linux/arm64
 
 
-
   create-discoverer-image:
     name: Build and push LDES Discoverer image
+    # If the branch is main, we push to DockerHub, otherwise to the GitHub Container Registry
     runs-on: ubuntu-latest
-    needs: build
     permissions:
       contents: read
       packages: write
+    needs: build
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
       - name: Download JARs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: artifacts
           path: .github
       - name: Define docker variables
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-          echo "IMAGE_TAG=${{ needs.build.outputs.version }}" >> $GITHUB_ENV
-          echo "IMAGES=${{ env.DOCKER_HUB_NAMESPACE }}/${{ env.DISCOVERER_IMAGE_NAME }}" >> $GITHUB_ENV
-          if [[ "${{ needs.build.outputs.version }}" != *"SNAPSHOT"* ]]; then
-          echo "LATEST=latest" >> $GITHUB_ENV
-          fi
+            echo "IMAGE_TAG=${{ needs.build.outputs.version }}" >> $GITHUB_ENV
+            echo "IMAGES=${{ env.DOCKER_HUB_NAMESPACE }}/${{ env.DISCOVERER_IMAGE_NAME }}" >> $GITHUB_ENV
+            if [[ "${{ needs.build.outputs.version }}" != *"SNAPSHOT"* ]]; then
+              echo "LATEST=latest" >> $GITHUB_ENV
+            fi
           else
-          echo "IMAGE_TAG=${{ needs.build.outputs.version }}-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
-          echo "IMAGES=${{ env.GHCR_REGISTRY }}/${{ env.GHCR_DISCOVERER_REPO }}" >> $GITHUB_ENV
-          echo "LATEST=latest" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${{ needs.build.outputs.version }}-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+            echo "IMAGES=${{ env.GHCR_REGISTRY }}/${{ env.GHCR_DISCOVERER_REPO }}" >> $GITHUB_ENV
+            echo "LATEST=latest" >> $GITHUB_ENV
           fi
       - name: Log in to the DockerHub Container registry
         if: github.ref_name == 'main'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Log in to the GitHub Container registry
         if: github.ref_name != 'main'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGES }}
           tags: |
             type=raw,value=${{env.IMAGE_TAG}}
             type=raw,value=${{env.LATEST}}
       - name: Build and push Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .github
           push: true

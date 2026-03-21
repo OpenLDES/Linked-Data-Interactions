@@ -14,7 +14,7 @@ We will later use that data to extend our user data Model to include the Car dat
 ## Used Components
 
 - [Http In](../ldio-inputs/ldio-http-in)
-- [RDF Adapter](../ldio-adapters/ldio-rdf-adapter.md)
+- [RDF Adapter](../ldio-adapters/ldio-rdf-adapter)
 - [Console Out](../ldio-outputs/ldio-console-out)
 - [Repository Sink](../ldio-outputs/ldio-repository-sink)
 
