@@ -37,6 +37,7 @@ COPY ./ldi-orchestrator/ldio-connectors/ldio-console-out/target/ldio-console-out
 COPY ./ldi-orchestrator/ldio-connectors/ldio-http-out/target/ldio-http-out-jar-with-dependencies.jar ./lib/
 COPY ./ldi-orchestrator/ldio-connectors/ldio-noop-out/target/ldio-noop-out-jar-with-dependencies.jar ./lib/
 COPY ./ldi-orchestrator/ldio-connectors/ldio-repository-sink/target/ldio-repository-sink-jar-with-dependencies.jar ./lib/
+COPY ./ldi-orchestrator/ldio-connectors/ldio-rdb-out/target/ldio-rdb-out-jar-with-dependencies.jar ./lib/
 COPY ./ldi-orchestrator/ldio-connectors/ldio-http-sparql-out/target/ldio-http-sparql-out-jar-with-dependencies.jar ./lib/
 
 
