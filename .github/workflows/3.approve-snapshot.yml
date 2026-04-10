@@ -12,10 +12,11 @@ env:
   JAVA_VERSION: ${{ vars.JAVA_VERSION }}
   GIT_CONFIG_USERNAME: ${{ vars.GIT_CONFIG_USERNAME }}
   GIT_CONFIG_EMAIL: ${{ vars.GIT_CONFIG_EMAIL }}
+  DEPLOY_DOCS_PAT: ${{ secrets.DEPLOY_DOCS_PAT }}
 
 jobs:
   approve-snapshot:
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref == 'refs/heads/main' || github.event_name == 'release' }}
     name: Approve Snapshot and Promote
     runs-on: ubuntu-latest
     steps:

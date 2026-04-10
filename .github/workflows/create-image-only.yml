@@ -6,6 +6,7 @@ on:
 env:
   GHCR_REGISTRY: ghcr.io
   GHCR_DISCOVERER_REPO: ${{ vars.GHCR_DISCOVERER_REPO }}
+  GHCR_LDIO_REPO: ${{ vars.GHCR_LDIO_REPO }}
   IMAGE_NAME: ldi-orchestrator
   DISCOVERER_IMAGE_NAME: ldes-discoverer
   SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
@@ -110,7 +111,7 @@ jobs:
             fi
           else
             echo "IMAGE_TAG=${{ needs.build.outputs.version }}-$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
-            echo "IMAGES=${{ env.GHCR_REGISTRY }}/${{ github.repository }}" >> $GITHUB_ENV
+            echo "IMAGES=${{ env.GHCR_REGISTRY }}/${{ env.GHCR_LDIO_REPO }}" >> $GITHUB_ENV
             echo "LATEST=latest" >> $GITHUB_ENV
           fi
       - name: Log in to the DockerHub Container registry
