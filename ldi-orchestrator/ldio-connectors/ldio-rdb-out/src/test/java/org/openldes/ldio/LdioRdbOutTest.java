@@ -80,10 +80,10 @@ class LdioRdbOutTest {
   void given_modelWithOneRow_when_accept_then_executeIsExecuted() {
     RDFParser parser = RDFParser.create().source("one_sensor.ttl").build();
     Model model = parser.toModel();
-    when(jdbcTemplateMock.update(eq(EXPECTED_INSERT_STATEMENT), eq(EXPECTED_SENSOR_ID),
+    when(jdbcTemplateMock.update(eq(EXPECTED_INSERT_STATEMENT + " ON CONFLICT DO NOTHING"), eq(EXPECTED_SENSOR_ID),
         eq(EXPECTED_DATE_TIME))).thenReturn(1);
     sut.accept(model);
-    verify(jdbcTemplateMock, times(1)).update(eq(EXPECTED_INSERT_STATEMENT), eq(EXPECTED_SENSOR_ID),
+    verify(jdbcTemplateMock, times(1)).update(eq(EXPECTED_INSERT_STATEMENT + " ON CONFLICT DO NOTHING"), eq(EXPECTED_SENSOR_ID),
         eq(EXPECTED_DATE_TIME));
   }
 
@@ -93,9 +93,9 @@ class LdioRdbOutTest {
     RDFParser parser = RDFParser.create().source("one_sensor_with_one_column.ttl").build();
     Model model = parser.toModel();
     when(transactionManagerMock.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
-    when(jdbcTemplateMock.update(eq(EXPECTED_INSERT_STATEMENT), eq(EXPECTED_SENSOR_ID), eq(null))).thenReturn(1);
+    when(jdbcTemplateMock.update(eq(EXPECTED_INSERT_STATEMENT + " ON CONFLICT DO NOTHING"), eq(EXPECTED_SENSOR_ID), eq(null))).thenReturn(1);
     sut.accept(model);
-    verify(jdbcTemplateMock, times(1)).update(eq(EXPECTED_INSERT_STATEMENT), eq(EXPECTED_SENSOR_ID),
+    verify(jdbcTemplateMock, times(1)).update(eq(EXPECTED_INSERT_STATEMENT + " ON CONFLICT DO NOTHING"), eq(EXPECTED_SENSOR_ID),
         eq(null));
   }
 

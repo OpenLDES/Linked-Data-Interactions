@@ -75,7 +75,7 @@ class DbRepositoryTest {
     when(statementCreationService.createInsertStatement(TABLE_NAME, COLUMNS)).thenReturn(INSERT_STATEMENT);
     DataModelDTO dataModelDTO = new DataModelDTO(new ColumnsDTO(COLUMNS));
     dataModelDTO.setData(new ValuesDTO(List.of(List.of("value"))));
-    when(jdbcTemplate.update(INSERT_STATEMENT,
+    when(jdbcTemplate.update(INSERT_STATEMENT + " ON CONFLICT DO NOTHING",
         dataModelDTO.getData().values().getFirst().toArray())).thenReturn(1);
     DbRepository dbRepository = new DbRepository(jdbcTemplate, transactionTemplate,
         statementCreationService, TABLE_NAME, true);
@@ -88,7 +88,7 @@ class DbRepositoryTest {
         INSERT_STATEMENT);
     DataModelDTO dataModelDTO = new DataModelDTO(new ColumnsDTO(COLUMNS));
     dataModelDTO.setData(new ValuesDTO(List.of(List.of("value1", "value2"))));
-    when(jdbcTemplate.update(INSERT_STATEMENT,
+    when(jdbcTemplate.update(INSERT_STATEMENT + " ON CONFLICT DO NOTHING",
         dataModelDTO.getData().values().getFirst().toArray())).thenReturn(2);
     DbRepository dbRepository = new DbRepository(jdbcTemplate, transactionTemplate,
         statementCreationService, TABLE_NAME, true);
