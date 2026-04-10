@@ -3,27 +3,27 @@ package org.openldes.ldio;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.testcontainers.containers.MSSQLServerContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.startupcheck.MinimumDurationRunningStartupCheckStrategy;
 
 import java.time.Duration;
 
 public class DbContainerExtension implements BeforeAllCallback, AfterAllCallback {
-    private MSSQLServerContainer<?> mssqlContainer;
+    private PostgreSQLContainer<?> postgresqlContainer;
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
-        mssqlContainer = new MSSQLServerContainer<>("mcr.microsoft.com/mssql/server:2022-latest")
-                .withPassword("yourStrong(!)Password")
-                .withEnv("MSSQL_PID", "Developer")
-                .acceptLicense()
+        postgresqlContainer = new PostgreSQLContainer<>("postgres:16-alpine")
+                .withDatabaseName("testdb")
+                .withUsername("test")
+                .withPassword("test")
                 .withStartupCheckStrategy(new MinimumDurationRunningStartupCheckStrategy(Duration.ofSeconds(5)));
-        mssqlContainer.start();
+        postgresqlContainer.start();
 
-        System.setProperty("spring.datasource.url", mssqlContainer.getJdbcUrl());
-        System.setProperty("spring.datasource.username", mssqlContainer.getUsername());
-        System.setProperty("spring.datasource.password", mssqlContainer.getPassword());
-        System.setProperty("spring.datasource.driver-class-name", mssqlContainer.getDriverClassName());
+        System.setProperty("spring.datasource.url", postgresqlContainer.getJdbcUrl());
+        System.setProperty("spring.datasource.username", postgresqlContainer.getUsername());
+        System.setProperty("spring.datasource.password", postgresqlContainer.getPassword());
+        System.setProperty("spring.datasource.driver-class-name", postgresqlContainer.getDriverClassName());
     }
 
 

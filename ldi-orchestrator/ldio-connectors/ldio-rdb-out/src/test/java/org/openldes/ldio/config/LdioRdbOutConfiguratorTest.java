@@ -7,6 +7,7 @@ import org.openldes.ldio.pipeline.creation.valueobjects.ComponentProperties;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import static org.openldes.ldio.config.LdioRdbOutAutoConfig.LdioRdbOutConfigurator.PROPERTY_SPARQL_SELECT_QUERY;
 import static org.openldes.ldio.config.LdioRdbOutAutoConfig.LdioRdbOutConfigurator.PROPERTY_TABLE_NAME;
@@ -24,30 +25,33 @@ class LdioRdbOutConfiguratorTest {
     public static final String DEFAULT_SPARQL_SELECT_QUERY = "SELECT * WHERE {?s ?p ?o}";
 
     @Test
-    void given_jdbcTemplate_when_createLdioRdbOutAutoConfig_then_ldioConfiguratorBeanIsCreated() {
+    void given_jdbcTemplateAndTransactionTemplate_when_createLdioRdbOutAutoConfig_then_ldioConfiguratorBeanIsCreated() {
         JdbcTemplate jdbcTemplateMock = Mockito.mock(JdbcTemplate.class);
-        LdioRdbOutAutoConfig config = new LdioRdbOutAutoConfig(jdbcTemplateMock);
+        TransactionTemplate transactionTemplateMock = Mockito.mock(TransactionTemplate.class);
+        LdioRdbOutAutoConfig config = new LdioRdbOutAutoConfig(jdbcTemplateMock, transactionTemplateMock);
 
         assertThat(config.ldioConfigurator()).isNotNull();
     }
 
     @Test
-    void given_jdbcTemplate_when_createLdioRdbOutAutoConfig_then_ldioConfiguratorBeanIsInstanceOfCorrectType() {
+    void given_jdbcTemplateAndTransactionTemplate_when_createLdioRdbOutAutoConfig_then_ldioConfiguratorBeanIsInstanceOfCorrectType() {
         JdbcTemplate jdbcTemplateMock = Mockito.mock(JdbcTemplate.class);
-        LdioRdbOutAutoConfig config = new LdioRdbOutAutoConfig(jdbcTemplateMock);
+        TransactionTemplate transactionTemplateMock = Mockito.mock(TransactionTemplate.class);
+        LdioRdbOutAutoConfig config = new LdioRdbOutAutoConfig(jdbcTemplateMock, transactionTemplateMock);
 
         assertThat(config.ldioConfigurator()).isInstanceOf(LdioRdbOutAutoConfig.LdioRdbOutConfigurator.class);
     }
 
     @Test
-    void given_jdbcTemplate_when_createLdioRdbOutAutoConfigWithProperties_then_ldioConfiguratorBeanHasUsedProperties() {
+    void given_jdbcTemplateAndTransactionTemplate_when_createLdioRdbOutAutoConfigWithProperties_then_ldioConfiguratorBeanHasUsedProperties() {
         JdbcTemplate jdbcTemplate = Mockito.mock(JdbcTemplate.class);
+        TransactionTemplate transactionTemplateMock = Mockito.mock(TransactionTemplate.class);
         ComponentProperties properties = Mockito.mock(ComponentProperties.class);
 
         when(properties.getProperty(PROPERTY_TABLE_NAME)).thenReturn(TEST_TABLE);
         when(properties.getProperty(PROPERTY_SPARQL_SELECT_QUERY)).thenReturn(DEFAULT_SPARQL_SELECT_QUERY);
 
-        LdioOutputConfigurator configurator = new LdioRdbOutAutoConfig.LdioRdbOutConfigurator(jdbcTemplate);
+        LdioOutputConfigurator configurator = new LdioRdbOutAutoConfig.LdioRdbOutConfigurator(jdbcTemplate, transactionTemplateMock);
         LdiComponent component = configurator.configure(properties);
 
         assertNotNull(component);
@@ -60,12 +64,13 @@ class LdioRdbOutConfiguratorTest {
     @Test
     void when_createLdioRdbOutAutoConfigWithNoTableName_then_throwsIllegalArgumentException() {
         JdbcTemplate jdbcTemplate = Mockito.mock(JdbcTemplate.class);
+        TransactionTemplate transactionTemplateMock = Mockito.mock(TransactionTemplate.class);
         ComponentProperties properties = Mockito.mock(ComponentProperties.class);
 
         when(properties.getProperty(PROPERTY_TABLE_NAME)).thenReturn(null);
         when(properties.getProperty(PROPERTY_SPARQL_SELECT_QUERY)).thenReturn(DEFAULT_SPARQL_SELECT_QUERY);
 
-        LdioOutputConfigurator configurator = new LdioRdbOutAutoConfig.LdioRdbOutConfigurator(jdbcTemplate);
+        LdioOutputConfigurator configurator = new LdioRdbOutAutoConfig.LdioRdbOutConfigurator(jdbcTemplate, transactionTemplateMock);
 
         assertThrows(IllegalArgumentException.class, () -> configurator.configure(properties));
 
@@ -75,12 +80,13 @@ class LdioRdbOutConfiguratorTest {
     @Test
     void when_createLdioRdbOutAutoConfigWithNoSparqlSelectQuery_then_throwsIllegalArgumentException() {
         JdbcTemplate jdbcTemplate = Mockito.mock(JdbcTemplate.class);
+        TransactionTemplate transactionTemplateMock = Mockito.mock(TransactionTemplate.class);
         ComponentProperties properties = Mockito.mock(ComponentProperties.class);
 
         when(properties.getProperty(PROPERTY_TABLE_NAME)).thenReturn(TEST_TABLE);
         when(properties.getProperty(PROPERTY_SPARQL_SELECT_QUERY)).thenReturn(null);
 
-        LdioOutputConfigurator configurator = new LdioRdbOutAutoConfig.LdioRdbOutConfigurator(jdbcTemplate);
+        LdioOutputConfigurator configurator = new LdioRdbOutAutoConfig.LdioRdbOutConfigurator(jdbcTemplate, transactionTemplateMock);
 
         assertThrows(IllegalArgumentException.class, () -> configurator.configure(properties));
 
@@ -91,13 +97,14 @@ class LdioRdbOutConfiguratorTest {
     @Test
     void given_jdbcTemplate_when_createLdioRdbOutAutoConfigWithPropertiesAndIgnoreDuplicateKeyException_then_ldioConfiguratorBeanHasUsedProperties() {
         JdbcTemplate jdbcTemplate = Mockito.mock(JdbcTemplate.class);
+        TransactionTemplate transactionTemplateMock = Mockito.mock(TransactionTemplate.class);
         ComponentProperties properties = Mockito.mock(ComponentProperties.class);
 
         when(properties.getProperty(PROPERTY_TABLE_NAME)).thenReturn(TEST_TABLE);
         when(properties.getProperty(PROPERTY_SPARQL_SELECT_QUERY)).thenReturn(DEFAULT_SPARQL_SELECT_QUERY);
         when(properties.getOptionalBoolean("ignore-duplicate-key-exception")).thenReturn(java.util.Optional.of(true));
 
-        LdioOutputConfigurator configurator = new LdioRdbOutAutoConfig.LdioRdbOutConfigurator(jdbcTemplate);
+        LdioOutputConfigurator configurator = new LdioRdbOutAutoConfig.LdioRdbOutConfigurator(jdbcTemplate, transactionTemplateMock);
         LdiComponent component = configurator.configure(properties);
 
         assertNotNull(component);
