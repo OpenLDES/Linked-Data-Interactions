@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.openldes.ldio</groupId>
         <artifactId>ldio-connectors</artifactId>
-        <version>3.0.0</version>
+        <version>3.1.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ldio-rdb-out</artifactId>
@@ -24,8 +24,9 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>org.liquibase</groupId>
-            <artifactId>liquibase-core</artifactId>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
             <scope>runtime</scope>
         </dependency>
 
@@ -47,8 +48,21 @@
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>mssqlserver</artifactId>
+            <artifactId>postgresql</artifactId>
+            <version>${testcontainers-postgresql.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mssqlserver</artifactId>
+            <version>${testcontainers-mssqlserver.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.42</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

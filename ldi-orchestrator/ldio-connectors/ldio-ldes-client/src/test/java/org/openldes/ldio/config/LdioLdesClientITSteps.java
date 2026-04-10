@@ -67,10 +67,7 @@ public class LdioLdesClientITSteps extends LdesClientInIT {
 
 	@Then("All {int} members from the stream are passed to the pipeline")
 	public void allMembersFromTheStreamArePassedToThePipeline(int memberCount) {
-		await().atMost(Duration.ofMinutes(2)).until(() -> {
-			System.out.println(members.size());
-			return members.size() == memberCount;
-		});
+		await().atMost(Duration.ofMinutes(2)).until(() -> members.size() == memberCount);
 	}
 
 	@And("I want to add the following properties")

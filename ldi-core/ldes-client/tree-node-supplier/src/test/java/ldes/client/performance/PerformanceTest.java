@@ -129,7 +129,6 @@ class PerformanceTest {
 			if (i % (testSize / 20) == 0) {
 				int msIntervals = (int) ChronoUnit.MILLIS.between(lastInterval, lastInterval = LocalDateTime.now());
 				csvFile.addLine(i, msIntervals, test);
-				System.out.println(i + ": " + msIntervals);
 			}
 		}
 

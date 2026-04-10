@@ -10,7 +10,7 @@
     <groupId>org.openldes</groupId>
     <artifactId>linked-data-interactions</artifactId>
     <packaging>pom</packaging>
-    <version>3.0.0</version>
+    <version>3.1.0-SNAPSHOT</version>
 
     <modules>
         <module>ldi-api</module>
@@ -67,13 +67,13 @@
         <springdoc-openapi.version>2.3.0</springdoc-openapi.version>
 
         <!-- PERSISTENCE -->
-        <sqlite-jdbc.version>3.43.0.0</sqlite-jdbc.version>
-        <sqlite-dialect.version>0.1.4</sqlite-dialect.version>
+        <sqlite-jdbc.version>3.49.1.0</sqlite-jdbc.version>
+        <sqlite-dialect.version>0.2.0</sqlite-dialect.version>
         <hibernate.version>5.6.15.Final</hibernate.version>
         <javax-validation.version>2.0.1.Final</javax-validation.version>
         <javax.version>2.2</javax.version>
         <hikari.version>5.0.1</hikari.version>
-        <postgresql.version>42.6.0</postgresql.version>
+        <postgresql.version>42.7.7</postgresql.version>
 
         <jena.version>5.1.0</jena.version>
         <sis-embedded-db.version>1.4</sis-embedded-db.version>
@@ -101,6 +101,7 @@
         <cucumber.version>7.20.1</cucumber.version>
         <testcontainers.version>1.19.6</testcontainers.version>
         <testcontainers-postgresql.version>1.20.2</testcontainers-postgresql.version>
+        <testcontainers-mssqlserver.version>1.20.2</testcontainers-mssqlserver.version>
         <slf4j.version>2.0.7</slf4j.version>
         <logback-classic.version>1.4.11</logback-classic.version>
         <!-- Jacoco -->

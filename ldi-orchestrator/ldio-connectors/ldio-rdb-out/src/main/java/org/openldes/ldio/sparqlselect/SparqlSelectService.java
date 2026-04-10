@@ -28,7 +28,6 @@ public class SparqlSelectService {
 
     public DataModelDTO execute(Model model, String sparqlQuery, DataModelDTO dataModelDTO) {
         if (model == null || sparqlQuery == null || sparqlQuery.isBlank() || dataModelDTO == null) {
-            logger.error("Model (%s), sparqlQuery (%s) and dataModelDTO (%s) must not be null - throwing an IllegalArgumentException".formatted(model, sparqlQuery, dataModelDTO));
             throw new IllegalArgumentException("Model, sparqlQuery and dataModelDTO must not be null");
         }
 

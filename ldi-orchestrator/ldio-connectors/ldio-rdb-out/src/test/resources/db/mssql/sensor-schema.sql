@@ -4,3 +4,4 @@ CREATE TABLE sensor_test (
     longitude          varchar(50),
     generated_at_time  datetimeoffset
 );
+

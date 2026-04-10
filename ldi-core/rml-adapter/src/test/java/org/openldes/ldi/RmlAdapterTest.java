@@ -54,11 +54,6 @@ class RmlAdapterTest {
 		List<Model> models = rmlAdapter.apply(LdiAdapter.Content.of(getFileContent(
 				dataPath), mimeType)).toList();
 
-		models.forEach(model -> {
-			System.out.println("New member");
-			RDFWriter.source(model).lang(Lang.TTL).output(System.out);
-		});
-
 		return models;
 	}
 

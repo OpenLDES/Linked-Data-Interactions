@@ -8,14 +8,12 @@ import org.testcontainers.containers.startupcheck.MinimumDurationRunningStartupC
 
 import java.time.Duration;
 
-public class DbContainerExtension implements BeforeAllCallback, AfterAllCallback {
+public class MssqlDbContainerExtension implements BeforeAllCallback, AfterAllCallback {
     private MSSQLServerContainer<?> mssqlContainer;
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
         mssqlContainer = new MSSQLServerContainer<>("mcr.microsoft.com/mssql/server:2022-latest")
-                .withPassword("yourStrong(!)Password")
-                .withEnv("MSSQL_PID", "Developer")
                 .acceptLicense()
                 .withStartupCheckStrategy(new MinimumDurationRunningStartupCheckStrategy(Duration.ofSeconds(5)));
         mssqlContainer.start();
@@ -31,3 +29,4 @@ public class DbContainerExtension implements BeforeAllCallback, AfterAllCallback
     public void afterAll(ExtensionContext context) throws Exception {
     }
 }
+
