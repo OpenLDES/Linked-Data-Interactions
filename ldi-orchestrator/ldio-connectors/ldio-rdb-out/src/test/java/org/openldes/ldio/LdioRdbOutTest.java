@@ -3,12 +3,15 @@ package org.openldes.ldio;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
+import lombok.SneakyThrows;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.RDFParser;
@@ -55,10 +58,16 @@ class LdioRdbOutTest {
   private PlatformTransactionManager transactionManagerMock;
 
   @BeforeEach
+  @SneakyThrows
   void setUp() {
     SparqlSelectService sparqlSelectService = new SparqlSelectService(new ValueConverter());
     transactionTemplate.setTransactionManager(transactionManagerMock);
     StatementCreationService statementCreationService = new StatementCreationService();
+    lenient().when(jdbcTemplateMock.getDataSource()).thenReturn(mock(javax.sql.DataSource.class));
+    lenient().when(jdbcTemplateMock.getDataSource().getConnection()).thenReturn(mock(java.sql.Connection.class));
+    lenient().when(jdbcTemplateMock.getDataSource().getConnection().getMetaData()).thenReturn(mock(java.sql.DatabaseMetaData.class));
+    lenient().when(jdbcTemplateMock.getDataSource().getConnection().getMetaData().getDatabaseProductName())
+        .thenReturn("PostgreSQL");
     DbRepository dbRepository = new DbRepository(jdbcTemplateMock, transactionTemplate,
         statementCreationService, TABLE_NAME, true);
     sut = new LdioRdbOut(null,

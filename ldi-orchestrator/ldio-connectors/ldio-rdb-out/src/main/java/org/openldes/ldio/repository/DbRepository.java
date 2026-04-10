@@ -19,13 +19,14 @@ public class DbRepository {
   private final Boolean ignoreDuplicateKeyException;
   private final StatementCreationService statementCreationService;
   private final TransactionTemplate transactionTemplate;
+  private final String IGNORE_DUPLICATE_KEY_SQL_SUFFIX;
 
   private String insertStatement;
 
   public DbRepository(JdbcTemplate jdbcTemplate, TransactionTemplate transactionTemplate,
-      StatementCreationService statementCreationService,
-      String tableName, Boolean ignoreDuplicateKeyException) {
-    if (jdbcTemplate == null || statementCreationService == null || tableName == null) {
+      StatementCreationService statementCreationService, String tableName,
+      Boolean ignoreDuplicateKeyException) {
+    if (jdbcTemplate == null || jdbcTemplate.getDataSource() == null || statementCreationService == null || tableName == null) {
       throw new IllegalArgumentException("Argument must not be null");
     }
     this.jdbcTemplate = jdbcTemplate;
@@ -33,6 +34,20 @@ public class DbRepository {
     this.statementCreationService = statementCreationService;
     this.tableName = tableName;
     this.ignoreDuplicateKeyException = ignoreDuplicateKeyException;
+    try {
+      // Unfortunately, there is no standard SQL syntax to ignore duplicate key exceptions,
+      // so we need to handle this per database. For PostgreSQL, we can use "ON CONFLICT DO NOTHING",
+      // for Microsoft SQL Server and other databases, we don't need to add anything to the INSERT statement,
+      // because we can catch the exception and ignore it.
+      IGNORE_DUPLICATE_KEY_SQL_SUFFIX = switch (jdbcTemplate.getDataSource().getConnection()
+          .getMetaData().getDatabaseProductName()) {
+        case "PostgreSQL" -> " ON CONFLICT DO NOTHING";
+        case "Microsoft SQL Server" -> "";
+        default -> "";
+      };
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public int execute(DataModelDTO dataModelDTO) {
@@ -52,7 +67,7 @@ public class DbRepository {
     }
     if (dataModelDTO.getData().values().size() == 1) {
       if (ignoreDuplicateKeyException) {
-        insertStatement = insertStatement + " ON CONFLICT DO NOTHING";
+        insertStatement = insertStatement + IGNORE_DUPLICATE_KEY_SQL_SUFFIX;
         insertCount = transactionTemplate.execute(status -> {
           try {
             return jdbcTemplate.update(insertStatement,

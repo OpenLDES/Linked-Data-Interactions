@@ -8,7 +8,7 @@ import org.testcontainers.containers.startupcheck.MinimumDurationRunningStartupC
 
 import java.time.Duration;
 
-public class DbContainerExtension implements BeforeAllCallback, AfterAllCallback {
+public class PostgresDbContainerExtension implements BeforeAllCallback, AfterAllCallback {
     private PostgreSQLContainer<?> postgresqlContainer;
 
     @Override

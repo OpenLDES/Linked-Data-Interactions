@@ -2,17 +2,17 @@ package org.openldes.ldio.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openldes.ldio.dto.ColumnsDTO;
 import org.openldes.ldio.dto.DataModelDTO;
@@ -29,15 +29,21 @@ class DbRepositoryTest {
   public static final String INSERT_STATEMENT = "insert into " + TABLE_NAME;
   TransactionTemplate transactionTemplate;
   @Mock
-  private JdbcTemplate jdbcTemplate;
+  private JdbcTemplate jdbcTemplateMock;
   @Mock
   private PlatformTransactionManager transactionManagerMock;
   @Mock
   private StatementCreationService statementCreationService;
 
   @BeforeEach
+  @SneakyThrows
   void setUp() {
     transactionTemplate = new TransactionTemplate(transactionManagerMock);
+    lenient().when(jdbcTemplateMock.getDataSource()).thenReturn(mock(javax.sql.DataSource.class));
+    lenient().when(jdbcTemplateMock.getDataSource().getConnection()).thenReturn(mock(java.sql.Connection.class));
+    lenient().when(jdbcTemplateMock.getDataSource().getConnection().getMetaData()).thenReturn(mock(java.sql.DatabaseMetaData.class));
+    lenient().when(jdbcTemplateMock.getDataSource().getConnection().getMetaData().getDatabaseProductName())
+        .thenReturn("PostgreSQL");
   }
 
   @Test
@@ -48,14 +54,14 @@ class DbRepositoryTest {
 
   @Test
   void when_createdWithMandatoryFields_then_dbRepositoryIsCreated() {
-    DbRepository dbRepository = new DbRepository(mock(JdbcTemplate.class),
+    DbRepository dbRepository = new DbRepository(jdbcTemplateMock,
         mock(TransactionTemplate.class), mock(StatementCreationService.class), TABLE_NAME, true);
     assertThat(dbRepository).isNotNull();
   }
 
   @Test
   void given_createdWithMandatoryFields_when_executeWithNullDataModelDTO_then_illegalArgumentExceptionIsThrown() {
-    DbRepository dbRepository = new DbRepository(mock(JdbcTemplate.class),
+    DbRepository dbRepository = new DbRepository(jdbcTemplateMock,
         mock(TransactionTemplate.class), mock(StatementCreationService.class), TABLE_NAME, true);
     assertThatThrownBy(() -> dbRepository.execute(null)).isInstanceOf(
         IllegalArgumentException.class);
@@ -63,7 +69,7 @@ class DbRepositoryTest {
 
   @Test
   void given_createdWithMandatoryFields_when_executeWithEmptyDataModelDTO_then_noRowsAreInserted() {
-    DbRepository dbRepository = new DbRepository(mock(JdbcTemplate.class),
+    DbRepository dbRepository = new DbRepository(jdbcTemplateMock,
         mock(TransactionTemplate.class), mock(StatementCreationService.class), TABLE_NAME, true);
     DataModelDTO dataModelDTO = new DataModelDTO(new ColumnsDTO(COLUMNS));
     dataModelDTO.setData(new ValuesDTO(List.of()));
@@ -75,9 +81,9 @@ class DbRepositoryTest {
     when(statementCreationService.createInsertStatement(TABLE_NAME, COLUMNS)).thenReturn(INSERT_STATEMENT);
     DataModelDTO dataModelDTO = new DataModelDTO(new ColumnsDTO(COLUMNS));
     dataModelDTO.setData(new ValuesDTO(List.of(List.of("value"))));
-    when(jdbcTemplate.update(INSERT_STATEMENT + " ON CONFLICT DO NOTHING",
+    when(jdbcTemplateMock.update(INSERT_STATEMENT + " ON CONFLICT DO NOTHING",
         dataModelDTO.getData().values().getFirst().toArray())).thenReturn(1);
-    DbRepository dbRepository = new DbRepository(jdbcTemplate, transactionTemplate,
+    DbRepository dbRepository = new DbRepository(jdbcTemplateMock, transactionTemplate,
         statementCreationService, TABLE_NAME, true);
     assertThat(dbRepository.execute(dataModelDTO)).isEqualTo(1);
   }
@@ -88,9 +94,9 @@ class DbRepositoryTest {
         INSERT_STATEMENT);
     DataModelDTO dataModelDTO = new DataModelDTO(new ColumnsDTO(COLUMNS));
     dataModelDTO.setData(new ValuesDTO(List.of(List.of("value1", "value2"))));
-    when(jdbcTemplate.update(INSERT_STATEMENT + " ON CONFLICT DO NOTHING",
+    when(jdbcTemplateMock.update(INSERT_STATEMENT + " ON CONFLICT DO NOTHING",
         dataModelDTO.getData().values().getFirst().toArray())).thenReturn(2);
-    DbRepository dbRepository = new DbRepository(jdbcTemplate, transactionTemplate,
+    DbRepository dbRepository = new DbRepository(jdbcTemplateMock, transactionTemplate,
         statementCreationService, TABLE_NAME, true);
     assertThat(dbRepository.execute(dataModelDTO)).isEqualTo(2);
   }
