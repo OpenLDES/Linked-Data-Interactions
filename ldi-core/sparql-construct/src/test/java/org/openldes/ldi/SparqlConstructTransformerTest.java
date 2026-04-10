@@ -145,7 +145,6 @@ class SparqlConstructTransformerTest {
 
 		result.forEach(
 				actualResult -> {
-					System.out.println(RDFWriter.source(actualResult).lang(Lang.TURTLE).asString());
 					expectedModels
 							.removeIf(expectedResult -> expectedResult.isIsomorphicWith(actualResult));
 				});

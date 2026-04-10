@@ -15,7 +15,6 @@ public class WireMockConfig {
 	public static void setupWireMock() {
 		wireMockServer = new WireMockServer(
 				WireMockConfiguration.options().port(WIREMOCK_PORT));
-		System.out.println("----- Starting Wiremock Server -----");
 		if (!wireMockServer.isRunning()) {
 			wireMockServer.start();
 		}
@@ -23,7 +22,6 @@ public class WireMockConfig {
 
 	@After
 	public static void tearDownWireMock() {
-		System.out.println("----- Stopping Wiremock Server -----");
 		wireMockServer.stop();
 	}
 
