@@ -52,6 +52,7 @@ public class DbRepository {
     }
     if (dataModelDTO.getData().values().size() == 1) {
       if (ignoreDuplicateKeyException) {
+        insertStatement = insertStatement + " ON CONFLICT DO NOTHING";
         insertCount = transactionTemplate.execute(status -> {
           try {
             return jdbcTemplate.update(insertStatement,

@@ -68,7 +68,6 @@ class DbRepositoryIntegrationTest {
   }
 
   @Test
-  @Disabled("TODO: This test is disabled because it relies on ignoring the unique constraint exception, which does not yet work with PostgreSQL. Once the unique constraint exception is properly handled, this test should be re-enabled.")
   @Sql("/db/sensor-schema.sql")
   @Sql("/db/sensor-unique-constraint.sql")
   @Sql("/db/sensor-values.sql")
