@@ -6,7 +6,7 @@
     <parent>
         <artifactId>ldio-connectors</artifactId>
         <groupId>org.openldes.ldio</groupId>
-        <version>3.1.1-SNAPSHOT</version>
+        <version>3.1.1</version>
     </parent>
 
     <artifactId>ldio-amqp</artifactId>

@@ -10,7 +10,7 @@
     <groupId>org.openldes</groupId>
     <artifactId>linked-data-interactions</artifactId>
     <packaging>pom</packaging>
-    <version>3.1.1-SNAPSHOT</version>
+    <version>3.1.1</version>
 
     <modules>
         <module>ldi-api</module>
