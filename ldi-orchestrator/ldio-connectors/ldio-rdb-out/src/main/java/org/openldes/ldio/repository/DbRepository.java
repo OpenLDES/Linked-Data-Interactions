@@ -64,10 +64,12 @@ public class DbRepository {
     if (insertStatement == null) {
       insertStatement = statementCreationService.createInsertStatement(tableName,
           dataModelDTO.getColumns().columns());
+      if (ignoreDuplicateKeyException) {
+        insertStatement = insertStatement + IGNORE_DUPLICATE_KEY_SQL_SUFFIX;
+      }
     }
     if (dataModelDTO.getData().values().size() == 1) {
       if (ignoreDuplicateKeyException) {
-        insertStatement = insertStatement + IGNORE_DUPLICATE_KEY_SQL_SUFFIX;
         insertCount = transactionTemplate.execute(status -> {
           try {
             return jdbcTemplate.update(insertStatement,

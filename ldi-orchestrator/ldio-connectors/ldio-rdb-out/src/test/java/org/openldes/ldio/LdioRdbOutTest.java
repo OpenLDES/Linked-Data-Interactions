@@ -114,9 +114,9 @@ class LdioRdbOutTest {
     RDFParser parser = RDFParser.create().source("two_sensors.ttl").build();
     Model model = parser.toModel();
 
-    when(jdbcTemplateMock.batchUpdate(eq(EXPECTED_INSERT_STATEMENT), anyList())).thenReturn(
+    when(jdbcTemplateMock.batchUpdate(eq(EXPECTED_INSERT_STATEMENT + " ON CONFLICT DO NOTHING"), anyList())).thenReturn(
         new int[]{1, 1});
     sut.accept(model);
-    verify(jdbcTemplateMock, times(1)).batchUpdate(eq(EXPECTED_INSERT_STATEMENT), anyList());
+    verify(jdbcTemplateMock, times(1)).batchUpdate(eq(EXPECTED_INSERT_STATEMENT + " ON CONFLICT DO NOTHING"), anyList());
   }
 }
