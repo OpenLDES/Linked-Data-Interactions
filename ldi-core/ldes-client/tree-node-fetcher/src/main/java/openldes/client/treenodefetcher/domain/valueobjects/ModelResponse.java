@@ -57,6 +57,14 @@ public class ModelResponse {
 				.toList();
 	}
 
+	public boolean isImmutable() {
+		return statements(model.listStatements(ANY_RESOURCE, W3ID_LDES_IMMUTABLE, (RDFNode) null))
+				.map(Statement::getObject)
+				.filter(RDFNode::isLiteral)
+				.map(RDFNode::asLiteral)
+				.anyMatch(Literal::getBoolean);
+	}
+
 	private Stream<Statement> extractMembers() {
 		final List<Resource> selectedEventStreams = selectedEventStreams();
 		if (!selectedEventStreams.isEmpty()) {

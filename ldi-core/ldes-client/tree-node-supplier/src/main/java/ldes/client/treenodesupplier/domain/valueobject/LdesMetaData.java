@@ -29,6 +29,10 @@ public class LdesMetaData {
 		return new TreeNodeRequest(treeNodeUrl, lang, null);
 	}
 
+	public TreeNodeRequest createRequest(String treeNodeUrl, String etag) {
+		return new TreeNodeRequest(treeNodeUrl, lang, etag);
+	}
+
 	public Lang getLang() {
 		return lang;
 	}
