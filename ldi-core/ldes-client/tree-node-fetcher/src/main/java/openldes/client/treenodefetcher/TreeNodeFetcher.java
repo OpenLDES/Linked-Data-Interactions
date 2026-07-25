@@ -2,17 +2,14 @@ package ldes.client.treenodefetcher;
 
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
 import org.openldes.ldi.requestexecutor.valueobjects.Response;
+import org.openldes.ldi.rdf.parser.RdfResponseParser;
 import org.openldes.ldi.timestampextractor.TimestampExtractor;
 import ldes.client.treenodefetcher.domain.valueobjects.ModelResponse;
 import ldes.client.treenodefetcher.domain.valueobjects.MutabilityStatus;
 import ldes.client.treenodefetcher.domain.valueobjects.TreeNodeRequest;
 import ldes.client.treenodefetcher.domain.valueobjects.TreeNodeResponse;
 import org.apache.http.HttpHeaders;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.riot.RDFParser;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -54,9 +51,15 @@ public class TreeNodeFetcher {
 	}
 
 	private TreeNodeResponse createOkResponse(TreeNodeRequest treeNodeRequest, Response response) {
-		final InputStream responseBody = response.getBody().map(ByteArrayInputStream::new).orElseThrow();
-		final Model model = RDFParser.source(responseBody).forceLang(treeNodeRequest.getLang()).base(treeNodeRequest.getTreeNodeUrl()).toModel();
-		final ModelResponse modelResponse = new ModelResponse(model, timestampExtractor);
+		final byte[] responseBody = response.getBody().orElseThrow();
+		final String contentType = response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null);
+		final ModelResponse modelResponse = new ModelResponse(
+				RdfResponseParser.parseDataset(
+						responseBody,
+						contentType,
+						treeNodeRequest.getTreeNodeUrl(),
+						treeNodeRequest.getLang()),
+				timestampExtractor);
 		final MutabilityStatus mutabilityStatus = getMutabilityStatus(response);
 		return new TreeNodeResponse(modelResponse.getRelations(), modelResponse.getMembers(), mutabilityStatus);
 	}

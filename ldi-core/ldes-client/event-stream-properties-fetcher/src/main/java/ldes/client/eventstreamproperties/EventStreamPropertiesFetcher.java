@@ -2,13 +2,12 @@ package ldes.client.eventstreamproperties;
 
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
 import org.openldes.ldi.requestexecutor.valueobjects.Response;
+import org.openldes.ldi.rdf.parser.RdfResponseParser;
 import ldes.client.eventstreamproperties.services.StartingNodeSpecificationFactory;
 import ldes.client.eventstreamproperties.valueobjects.EventStreamProperties;
 import ldes.client.eventstreamproperties.valueobjects.PropertiesRequest;
 import ldes.client.eventstreamproperties.valueobjects.StartingNodeSpecification;
-import org.apache.jena.riot.RDFParser;
-
-import java.io.ByteArrayInputStream;
+import org.apache.http.HttpHeaders;
 
 public class EventStreamPropertiesFetcher {
 	private final RequestExecutor requestExecutor;
@@ -33,8 +32,11 @@ public class EventStreamPropertiesFetcher {
 
 		if(response.isOk()) {
 			return response.getBody()
-					.map(ByteArrayInputStream::new)
-					.map(body -> RDFParser.source(body).lang(request.lang()).toModel())
+					.map(body -> RdfResponseParser.parseModel(
+							body,
+							response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null),
+							request.url(),
+							request.lang()))
 					.map(StartingNodeSpecificationFactory::fromModel)
 					.map(StartingNodeSpecification::extractEventStreamProperties)
 					.orElseThrow();

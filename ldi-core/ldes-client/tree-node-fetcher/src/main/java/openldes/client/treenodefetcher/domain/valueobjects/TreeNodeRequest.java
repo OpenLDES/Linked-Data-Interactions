@@ -7,6 +7,8 @@ import org.openldes.ldi.requestexecutor.valueobjects.RequestHeaders;
 import org.apache.http.HttpHeaders;
 import org.apache.jena.riot.Lang;
 
+import static org.openldes.ldi.rdf.parser.RdfResponseParser.ACCEPT_HEADER;
+
 /**
  * Contains the endpoint to connect to the server. This can only be a fragment
  */
@@ -24,7 +26,7 @@ public class TreeNodeRequest {
 
 	public Request createRequest() {
 		RequestHeaders requestHeaders = RequestHeaders.of(
-				new RequestHeader(HttpHeaders.ACCEPT, lang.getHeaderString()),
+				new RequestHeader(HttpHeaders.ACCEPT, ACCEPT_HEADER),
 				new RequestHeader(HttpHeaders.ACCEPT_ENCODING, "gzip")
 		);
 		if (etag != null) {

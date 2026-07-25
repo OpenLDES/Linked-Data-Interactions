@@ -2,15 +2,15 @@ package ldes.client.startingtreenode;
 
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
 import org.openldes.ldi.requestexecutor.valueobjects.Response;
+import org.openldes.ldi.rdf.parser.RdfResponseParser;
 import ldes.client.startingtreenode.domain.valueobjects.*;
 import ldes.client.startingtreenode.exception.StartingNodeNotFoundException;
+import org.apache.http.HttpHeaders;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.util.List;
 
 public class StartingTreeNodeFinder {
@@ -35,12 +35,16 @@ public class StartingTreeNodeFinder {
 	public StartingTreeNode determineStartingTreeNode(final StartingNodeRequest startingNodeRequest) {
 		log.atInfo().log("determineStartingTreeNode for: " + startingNodeRequest.url());
 		final Response response = requestExecutor.execute(startingNodeRequest);
-		final Model model = getModelFromResponse(startingNodeRequest.lang(), response.getBody().orElseThrow(), startingNodeRequest.url());
+		final Model model = getModelFromResponse(
+				startingNodeRequest.lang(),
+				response.getBody().orElseThrow(),
+				response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null),
+				startingNodeRequest.url());
 		return selectStartingNode(startingNodeRequest, model);
 	}
 
-	private Model getModelFromResponse(Lang lang, byte[] responseBody, String baseUrl) {
-		return RDFParser.source(new ByteArrayInputStream(responseBody)).lang(lang).base(baseUrl).build().toModel();
+	private Model getModelFromResponse(Lang lang, byte[] responseBody, String contentType, String baseUrl) {
+		return RdfResponseParser.parseModel(responseBody, contentType, baseUrl, lang);
 	}
 
 	private StartingTreeNode selectStartingNode(StartingNodeRequest startingNodeRequest, Model model) {
