@@ -46,9 +46,7 @@ class EventStreamPropertiesFetcherTest {
 		final EventStreamProperties properties = fetcher.fetchEventStreamProperties(new PropertiesRequest("http://localhost:12121/observations", Lang.TTL));
 
 		verify(getRequestedFor(urlEqualTo("/observations")));
-		assertThat(properties)
-				.usingRecursiveComparison()
-				.isEqualTo(eventStreamProperties);
+		assertEventStreamProperties(properties);
 	}
 
 	@Test
@@ -61,9 +59,7 @@ class EventStreamPropertiesFetcherTest {
 		final EventStreamProperties properties = fetcher.fetchEventStreamProperties(new PropertiesRequest("http://localhost:12121/observations", Lang.TTL));
 
 		verify(getRequestedFor(urlEqualTo("/observations")));
-		assertThat(properties)
-				.usingRecursiveComparison()
-				.isEqualTo(eventStreamProperties);
+		assertEventStreamProperties(properties);
 	}
 
 	@Test
@@ -86,9 +82,7 @@ class EventStreamPropertiesFetcherTest {
 		final EventStreamProperties properties = fetcher.fetchEventStreamProperties(new PropertiesRequest("http://localhost:12121/observations/by-page", Lang.TTL));
 
 		verify(getRequestedFor(urlEqualTo("/observations/by-page")));
-		assertThat(properties)
-				.usingRecursiveComparison()
-				.isEqualTo(eventStreamProperties);
+		assertEventStreamProperties(properties);
 	}
 
 	@Test
@@ -104,8 +98,13 @@ class EventStreamPropertiesFetcherTest {
 
 		verify(getRequestedFor(urlEqualTo("/observations/by-page?pageNumber=1")));
 		verify(getRequestedFor(urlEqualTo("/observations")));
-		assertThat(properties)
-				.usingRecursiveComparison()
-				.isEqualTo(eventStreamProperties);
+		assertEventStreamProperties(properties);
+	}
+
+	private static void assertEventStreamProperties(EventStreamProperties properties) {
+		assertThat(properties.getUri()).isEqualTo(eventStreamProperties.getUri());
+		assertThat(properties.getVersionOfPath()).isEqualTo(eventStreamProperties.getVersionOfPath());
+		assertThat(properties.getTimestampPath()).isEqualTo(eventStreamProperties.getTimestampPath());
+		assertThat(properties.getShaclShapeUri()).isEqualTo(eventStreamProperties.getShaclShapeUri());
 	}
 }

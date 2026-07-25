@@ -21,8 +21,9 @@ class ViewSpecificationTest {
 
 		final EventStreamProperties eventStreamProperties = new ViewSpecification(model).extractEventStreamProperties();
 
-		assertThat(eventStreamProperties)
-				.usingRecursiveComparison()
-				.isEqualTo(expectedESProperties);
+		assertThat(eventStreamProperties.getUri()).isEqualTo(expectedESProperties.getUri());
+		assertThat(eventStreamProperties.getVersionOfPath()).isEqualTo(expectedESProperties.getVersionOfPath());
+		assertThat(eventStreamProperties.getTimestampPath()).isEqualTo(expectedESProperties.getTimestampPath());
+		assertThat(eventStreamProperties.getShaclShapeUri()).isEqualTo(expectedESProperties.getShaclShapeUri());
 	}
 }
