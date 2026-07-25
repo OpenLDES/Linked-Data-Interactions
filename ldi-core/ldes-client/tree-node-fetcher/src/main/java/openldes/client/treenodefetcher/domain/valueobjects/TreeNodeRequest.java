@@ -43,6 +43,10 @@ public class TreeNodeRequest {
 		return treeNodeUrl;
 	}
 
+	public TreeNodeRequest createRedirectedRequest(String treeNodeUrl) {
+		return new TreeNodeRequest(treeNodeUrl, lang, null);
+	}
+
 	@Override
 	public String toString() {
 		return "TreeNodeRequest{" +

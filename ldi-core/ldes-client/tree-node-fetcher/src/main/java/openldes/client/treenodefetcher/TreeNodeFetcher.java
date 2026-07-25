@@ -49,6 +49,10 @@ public class TreeNodeFetcher {
 	 * @return the new TreeNode with all its information
 	 */
 	public TreeNodeResponse fetchTreeNode(TreeNodeRequest treeNodeRequest) {
+		return fetchTreeNode(treeNodeRequest, List.of());
+	}
+
+	private TreeNodeResponse fetchTreeNode(TreeNodeRequest treeNodeRequest, List<String> redirectHistory) {
 		final Response response = requestExecutor.execute(treeNodeRequest.createRequest());
 
 		if (response.isOk()) {
@@ -56,7 +60,7 @@ public class TreeNodeFetcher {
 		}
 
 		if (response.isRedirect()) {
-			return createRedirectResponse(response);
+			return fetchRedirectedTreeNode(treeNodeRequest, response, redirectHistory);
 		}
 
 		if (response.isNotModified()) {
@@ -69,6 +73,20 @@ public class TreeNodeFetcher {
 
 		throw new UnsupportedOperationException(
 				"Cannot handle response " + response.getHttpStatus() + " of TreeNodeRequest " + treeNodeRequest);
+	}
+
+	private TreeNodeResponse fetchRedirectedTreeNode(
+			TreeNodeRequest treeNodeRequest,
+			Response response,
+			List<String> redirectHistory) {
+		final String redirectLocation = response.getRedirectLocation()
+				.orElseThrow(() -> new IllegalStateException("No Location Header in redirect."));
+		if (redirectHistory.contains(redirectLocation) || treeNodeRequest.getTreeNodeUrl().equals(redirectLocation)) {
+			throw new IllegalStateException("Infinite redirect loop.");
+		}
+		final List<String> updatedRedirectHistory = new ArrayList<>(redirectHistory);
+		updatedRedirectHistory.add(treeNodeRequest.getTreeNodeUrl());
+		return fetchTreeNode(treeNodeRequest.createRedirectedRequest(redirectLocation), updatedRedirectHistory);
 	}
 
 	private TreeNodeResponse createOkResponse(TreeNodeRequest treeNodeRequest, Response response) {
@@ -92,15 +110,6 @@ public class TreeNodeFetcher {
 				relations.isEmpty() ? modelResponse.getRelations() : relations,
 				modelResponse.getMembers(),
 				mutabilityStatus,
-				getEtag(response));
-	}
-
-	private static TreeNodeResponse createRedirectResponse(Response response) {
-		return new TreeNodeResponse(
-				List.of(response.getRedirectLocation()
-						.orElseThrow(() -> new IllegalStateException("No Location Header in redirect."))),
-				List.of(),
-				new MutabilityStatus(false, maxSupportedDateTime),
 				getEtag(response));
 	}
 
