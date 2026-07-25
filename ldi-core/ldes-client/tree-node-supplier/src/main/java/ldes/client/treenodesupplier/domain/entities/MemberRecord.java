@@ -15,7 +15,7 @@ public class MemberRecord implements Comparable<MemberRecord> {
 	private final String memberId;
 	private final LocalDateTime createdAt;
 	private final Dataset dataset;
-	private final Model model;
+	private volatile Model model;
 
 	public MemberRecord(String memberId, Model model, LocalDateTime createdAt) {
 		this.memberId = memberId;
@@ -27,7 +27,7 @@ public class MemberRecord implements Comparable<MemberRecord> {
 	public MemberRecord(String memberId, Dataset dataset, LocalDateTime createdAt) {
 		this.memberId = memberId;
 		this.dataset = dataset;
-		this.model = flatten(dataset);
+		this.model = null;
 		this.createdAt = createdAt;
 	}
 
@@ -40,6 +40,9 @@ public class MemberRecord implements Comparable<MemberRecord> {
 	}
 
 	public Model getModel() {
+		if (model == null) {
+			model = flatten(dataset);
+		}
 		return model;
 	}
 

@@ -82,12 +82,11 @@ public class ModelResponse {
 
 	private TreeMember processMember(Resource member) {
 		final Dataset memberDataset = extractMemberDataset(member);
-		final TreeMember treeMember = new TreeMember(member.toString(), null, memberDataset);
-		final Model memberModel = treeMember.getModel();
+		final Model memberModel = flatten(memberDataset);
 		final LocalDateTime createdAt = timestampExtractor.extractTimestampWithSubject(
 				memberModel.createResource(member.toString()),
 				memberModel);
-		return new TreeMember(member.toString(), createdAt, memberDataset);
+		return new TreeMember(member.toString(), createdAt, memberDataset, memberModel);
 	}
 
 	private Dataset extractMemberDataset(Resource member) {
@@ -119,6 +118,13 @@ public class ModelResponse {
 				copySubjectStar(triple.getObject(), source, target, visited);
 			}
 		}
+	}
+
+	private static Model flatten(Dataset dataset) {
+		final Model flattenedModel = ModelFactory.createDefaultModel()
+				.add(dataset.getDefaultModel());
+		dataset.listNames().forEachRemaining(name -> flattenedModel.add(dataset.getNamedModel(name)));
+		return flattenedModel;
 	}
 
 	private Stream<Statement> extractRelations() {
