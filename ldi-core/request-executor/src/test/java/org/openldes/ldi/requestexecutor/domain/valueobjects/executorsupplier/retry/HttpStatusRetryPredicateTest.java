@@ -31,6 +31,15 @@ class HttpStatusRetryPredicateTest {
 	}
 
 	@Test
+	void should_ReturnTrue_when_ResponseStatusIsLdesRetryableClientError() {
+		Response response408 = new Response(null, List.of(), 408, (String) null);
+		Response response425 = new Response(null, List.of(), 425, (String) null);
+
+		assertTrue(new HttpStatusRetryPredicate(List.of()).test(response408));
+		assertTrue(new HttpStatusRetryPredicate(List.of()).test(response425));
+	}
+
+	@Test
 	void should_ReturnTrue_when_ResponseStatusIsIncludedInStatusesToRetry() {
 		int customStatusThatShouldTriggerRetry = 418;
 		Response response = new Response(null, List.of(), customStatusThatShouldTriggerRetry, (String) null);
@@ -40,6 +49,12 @@ class HttpStatusRetryPredicateTest {
 	@Test
 	void should_ReturnFalse_when_StatusIsValid() {
 		Response response = new Response(null, List.of(), 200, (String) null);
+		assertFalse(new HttpStatusRetryPredicate(List.of()).test(response));
+	}
+
+	@Test
+	void should_ReturnFalse_when_StatusIsTerminalClientError() {
+		Response response = new Response(null, List.of(), 404, (String) null);
 		assertFalse(new HttpStatusRetryPredicate(List.of()).test(response));
 	}
 }

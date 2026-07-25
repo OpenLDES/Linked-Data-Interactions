@@ -64,7 +64,7 @@ public class LdioRequestExecutorSupplier {
     private Retry getRetry(ComponentProperties props) {
         boolean retriesEnabled = props.getOptionalBoolean(RETRIES_ENABLED).orElse(Boolean.TRUE);
         if (retriesEnabled) {
-            int maxRetries = props.getOptionalInteger(MAX_RETRIES).orElse(5);
+            int maxRetries = props.getOptionalInteger(MAX_RETRIES).orElse(RetryConfig.DEFAULT_MAX_ATTEMPTS);
             List<Integer> statusesToRetry = props.getOptionalProperty(STATUSES_TO_RETRY)
                     .map(csv -> Stream.of(csv.split(",")).map(String::trim).map(Integer::parseInt).toList())
                     .orElse(new ArrayList<>());

@@ -65,6 +65,10 @@ public class Response {
 		return hasStatus(List.of(HttpStatus.SC_NOT_MODIFIED));
 	}
 
+	public boolean isGone() {
+		return hasStatus(List.of(HttpStatus.SC_GONE));
+	}
+
 	public Optional<String> getRedirectLocation() {
 		return getFirstHeaderValue(HttpHeaders.LOCATION).map(location -> {
 			if (location.startsWith("http://") || location.startsWith("https://")) {
