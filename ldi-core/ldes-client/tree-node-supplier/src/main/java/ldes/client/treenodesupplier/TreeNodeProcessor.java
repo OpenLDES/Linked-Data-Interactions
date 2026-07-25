@@ -130,8 +130,9 @@ public class TreeNodeProcessor {
 			try {
 				waitUntilNextVisit(treeNodeRecord);
 				TreeNodeResponse treeNodeResponse = treeNodeFetcher
-						.fetchTreeNode(ldesMetaData.createRequest(treeNodeRecord.getTreeNodeUrl()));
+						.fetchTreeNode(ldesMetaData.createRequest(treeNodeRecord.getTreeNodeUrl(), treeNodeRecord.getEtag()));
 				treeNodeRecord.updateStatus(treeNodeResponse.getMutabilityStatus());
+				treeNodeResponse.getEtag().ifPresent(treeNodeRecord::updateEtag);
 				saveNewRelations(treeNodeResponse);
 				List<TreeMember> newMembers = getNewMembersFromResponse(treeNodeResponse, treeNodeRecord);
 				saveNewMembers(newMembers);

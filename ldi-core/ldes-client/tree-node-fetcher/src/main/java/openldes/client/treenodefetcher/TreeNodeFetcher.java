@@ -10,9 +10,25 @@ import ldes.client.treenodefetcher.domain.valueobjects.TreeNodeRequest;
 import ldes.client.treenodefetcher.domain.valueobjects.TreeNodeResponse;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
+import org.apache.jena.atlas.web.ContentType;
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.Triple;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.riot.RDFParser;
+import org.apache.jena.riot.RiotException;
+import org.apache.jena.riot.system.StreamRDFBase;
+import org.apache.jena.sparql.core.Quad;
 
+import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static ldes.client.treenodefetcher.domain.valueobjects.Constants.W3ID_TREE_NODE;
+import static ldes.client.treenodefetcher.domain.valueobjects.Constants.W3ID_TREE_RELATION;
 
 /**
  * Responsible for fetching the next TreeNodes
@@ -67,7 +83,16 @@ public class TreeNodeFetcher {
 				timestampExtractor,
 				treeNodeRequest.getTreeNodeUrl());
 		final MutabilityStatus mutabilityStatus = getMutabilityStatus(response, modelResponse);
-		return new TreeNodeResponse(modelResponse.getRelations(), modelResponse.getMembers(), mutabilityStatus);
+		final List<String> relations = extractRelationsInDocumentOrder(
+				responseBody,
+				contentType,
+				treeNodeRequest.getTreeNodeUrl(),
+				treeNodeRequest.getLang());
+		return new TreeNodeResponse(
+				relations.isEmpty() ? modelResponse.getRelations() : relations,
+				modelResponse.getMembers(),
+				mutabilityStatus,
+				getEtag(response));
 	}
 
 	private static TreeNodeResponse createRedirectResponse(Response response) {
@@ -75,11 +100,12 @@ public class TreeNodeFetcher {
 				List.of(response.getRedirectLocation()
 						.orElseThrow(() -> new IllegalStateException("No Location Header in redirect."))),
 				List.of(),
-				new MutabilityStatus(false, maxSupportedDateTime));
+				new MutabilityStatus(false, maxSupportedDateTime),
+				getEtag(response));
 	}
 
 	private static TreeNodeResponse createNotModifiedResponse(Response response) {
-		return new TreeNodeResponse(List.of(), List.of(), getMutabilityStatus(response));
+		return new TreeNodeResponse(List.of(), List.of(), getMutabilityStatus(response), getEtag(response));
 	}
 
 	private static TreeNodeResponse createGoneResponse() {
@@ -87,9 +113,74 @@ public class TreeNodeFetcher {
 	}
 
 	private static MutabilityStatus getMutabilityStatus(Response response, ModelResponse modelResponse) {
+		if (modelResponse.isImmutable()) {
+			return new MutabilityStatus(false, LocalDateTime.now());
+		}
 		return response.getFirstHeaderValue(HttpHeaders.CACHE_CONTROL)
 				.map(MutabilityStatus::ofHeader)
 				.orElseGet(() -> getEmptyCacheControlMutabilityStatus(modelResponse));
+	}
+
+	private static String getEtag(Response response) {
+		return response.getFirstHeaderValue(HttpHeaders.ETAG).orElse(null);
+	}
+
+	private static List<String> extractRelationsInDocumentOrder(byte[] responseBody, String contentType, String baseIri, Lang fallbackLang) {
+		final RelationOrderCollector collector = new RelationOrderCollector();
+		RDFParser.source(new ByteArrayInputStream(responseBody))
+				.lang(responseLang(contentType, fallbackLang))
+				.base(baseIri)
+				.parse(collector);
+		return collector.getRelations();
+	}
+
+	private static Lang responseLang(String contentType, Lang fallbackLang) {
+		if (contentType == null || contentType.isBlank()) {
+			if (fallbackLang == null) {
+				throw new RiotException("The RDF response has no Content-Type and no fallback language was configured");
+			}
+			return fallbackLang;
+		}
+
+		final Lang contentTypeLang = RDFLanguages.contentTypeToLang(ContentType.create(contentType));
+		if (contentTypeLang == null) {
+			throw new RiotException("Unsupported RDF response Content-Type: " + contentType);
+		}
+		return contentTypeLang;
+	}
+
+	private static class RelationOrderCollector extends StreamRDFBase {
+		private final List<Node> relationNodes = new ArrayList<>();
+		private final Map<Node, String> treeNodesByRelation = new HashMap<>();
+
+		@Override
+		public void triple(Triple triple) {
+			process(triple);
+		}
+
+		@Override
+		public void quad(Quad quad) {
+			process(quad.asTriple());
+		}
+
+		private void process(Triple triple) {
+			if (W3ID_TREE_RELATION.asNode().equals(triple.getPredicate())) {
+				relationNodes.add(triple.getObject());
+			}
+			if (W3ID_TREE_NODE.asNode().equals(triple.getPredicate()) && triple.getObject().isURI()) {
+				treeNodesByRelation.put(triple.getSubject(), triple.getObject().getURI());
+			}
+		}
+
+		private List<String> getRelations() {
+			return relationNodes.stream()
+					.map(relationNode -> relationNode.isURI()
+							? relationNode.getURI()
+							: treeNodesByRelation.get(relationNode))
+					.filter(relation -> relation != null)
+					.distinct()
+					.toList();
+		}
 	}
 
 	private static MutabilityStatus getMutabilityStatus(Response response) {
