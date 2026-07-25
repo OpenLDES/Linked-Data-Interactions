@@ -11,7 +11,7 @@ public class TreeMember {
 	private final String memberId;
 	private final LocalDateTime createdAt;
 	private final Dataset dataset;
-	private final Model model;
+	private volatile Model model;
 
 	public TreeMember(String memberId, LocalDateTime createdAt, Model model) {
 		this.memberId = memberId;
@@ -21,10 +21,14 @@ public class TreeMember {
 	}
 
 	public TreeMember(String memberId, LocalDateTime createdAt, Dataset dataset) {
+		this(memberId, createdAt, dataset, null);
+	}
+
+	public TreeMember(String memberId, LocalDateTime createdAt, Dataset dataset, Model model) {
 		this.memberId = memberId;
 		this.createdAt = createdAt;
 		this.dataset = dataset;
-		this.model = flatten(dataset);
+		this.model = model;
 	}
 
 	public String getMemberId() {
@@ -32,6 +36,9 @@ public class TreeMember {
 	}
 
 	public Model getModel() {
+		if (model == null) {
+			model = flatten(dataset);
+		}
 		return model;
 	}
 

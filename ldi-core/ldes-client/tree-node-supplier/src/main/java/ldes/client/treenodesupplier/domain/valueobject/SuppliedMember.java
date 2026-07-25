@@ -12,7 +12,7 @@ public class SuppliedMember {
 
 	private final String id;
 	private final Dataset dataset;
-	private final Model model;
+	private volatile Model model;
 
 	public SuppliedMember(String id, Model model) {
 		this.id = id;
@@ -23,7 +23,7 @@ public class SuppliedMember {
 	public SuppliedMember(String id, Dataset dataset) {
 		this.id = id;
 		this.dataset = dataset;
-		this.model = flatten(dataset);
+		this.model = null;
 	}
 
 	public String getId() {
@@ -31,6 +31,9 @@ public class SuppliedMember {
 	}
 
 	public Model getModel() {
+		if (model == null) {
+			model = flatten(dataset);
+		}
 		return model;
 	}
 
