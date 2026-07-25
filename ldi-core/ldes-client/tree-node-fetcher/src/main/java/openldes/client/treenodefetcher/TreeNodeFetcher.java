@@ -9,6 +9,7 @@ import ldes.client.treenodefetcher.domain.valueobjects.MutabilityStatus;
 import ldes.client.treenodefetcher.domain.valueobjects.TreeNodeRequest;
 import ldes.client.treenodefetcher.domain.valueobjects.TreeNodeResponse;
 import org.apache.http.HttpHeaders;
+import org.apache.http.HttpStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -46,6 +47,10 @@ public class TreeNodeFetcher {
 			return createNotModifiedResponse(response);
 		}
 
+		if (response.hasStatus(List.of(HttpStatus.SC_GONE))) {
+			return createGoneResponse();
+		}
+
 		throw new UnsupportedOperationException(
 				"Cannot handle response " + response.getHttpStatus() + " of TreeNodeRequest " + treeNodeRequest);
 	}
@@ -61,7 +66,7 @@ public class TreeNodeFetcher {
 							treeNodeRequest.getLang()),
 				timestampExtractor,
 				treeNodeRequest.getTreeNodeUrl());
-		final MutabilityStatus mutabilityStatus = getMutabilityStatus(response);
+		final MutabilityStatus mutabilityStatus = getMutabilityStatus(response, modelResponse);
 		return new TreeNodeResponse(modelResponse.getRelations(), modelResponse.getMembers(), mutabilityStatus);
 	}
 
@@ -77,9 +82,26 @@ public class TreeNodeFetcher {
 		return new TreeNodeResponse(List.of(), List.of(), getMutabilityStatus(response));
 	}
 
+	private static TreeNodeResponse createGoneResponse() {
+		return new TreeNodeResponse(List.of(), List.of(), new MutabilityStatus(false, maxSupportedDateTime));
+	}
+
+	private static MutabilityStatus getMutabilityStatus(Response response, ModelResponse modelResponse) {
+		return response.getFirstHeaderValue(HttpHeaders.CACHE_CONTROL)
+				.map(MutabilityStatus::ofHeader)
+				.orElseGet(() -> getEmptyCacheControlMutabilityStatus(modelResponse));
+	}
+
 	private static MutabilityStatus getMutabilityStatus(Response response) {
 		return response.getFirstHeaderValue(HttpHeaders.CACHE_CONTROL)
 				.map(MutabilityStatus::ofHeader)
 				.orElseGet(MutabilityStatus::empty);
+	}
+
+	private static MutabilityStatus getEmptyCacheControlMutabilityStatus(ModelResponse modelResponse) {
+		if (modelResponse.getMembers().isEmpty() && modelResponse.getRelations().isEmpty()) {
+			return new MutabilityStatus(false, LocalDateTime.now());
+		}
+		return MutabilityStatus.empty();
 	}
 }
