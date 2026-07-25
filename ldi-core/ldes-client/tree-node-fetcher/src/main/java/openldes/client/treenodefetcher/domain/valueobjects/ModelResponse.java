@@ -3,6 +3,8 @@ package ldes.client.treenodefetcher.domain.valueobjects;
 import org.openldes.ldi.timestampextractor.TimestampExtractor;
 import ldes.client.treenodefetcher.domain.entities.TreeMember;
 import org.apache.jena.graph.TripleBoundary;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.*;
 
 import java.time.LocalDateTime;
@@ -19,10 +21,16 @@ import static ldes.client.treenodefetcher.domain.valueobjects.Constants.*;
 public class ModelResponse {
 	private final TimestampExtractor timestampExtractor;
 	private final ModelExtract modelExtract = new ModelExtract(new StatementTripleBoundary(TripleBoundary.stopNowhere));
+	private final Dataset dataset;
 	private final Model model;
 
 	public ModelResponse(Model model, TimestampExtractor timestampExtractor) {
-		this.model = model;
+		this(DatasetFactory.create(model), timestampExtractor);
+	}
+
+	public ModelResponse(Dataset dataset, TimestampExtractor timestampExtractor) {
+		this.dataset = dataset;
+		this.model = dataset.getDefaultModel();
 		this.timestampExtractor = timestampExtractor;
 	}
 
