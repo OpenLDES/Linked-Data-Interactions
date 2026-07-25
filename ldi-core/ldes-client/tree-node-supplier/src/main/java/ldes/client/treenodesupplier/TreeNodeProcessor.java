@@ -92,7 +92,10 @@ public class TreeNodeProcessor {
 	private void saveNewMembers(List<TreeMember> newMembers) {
 		memberRepository.saveTreeMembers(newMembers
 				.stream()
-				.map(treeMember -> new MemberRecord(treeMember.getMemberId(), treeMember.getModel(), treeMember.getCreatedAt())));
+				.map(treeMember -> new MemberRecord(
+						treeMember.getMemberId(),
+						treeMember.getDataset(),
+						treeMember.getCreatedAt())));
 	}
 
 	private static List<TreeMember> getNewMembersFromResponse(TreeNodeResponse treeNodeResponse, TreeNodeRecord treeNodeRecord) {
