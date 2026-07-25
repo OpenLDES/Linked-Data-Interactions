@@ -1,0 +1,102 @@
+name: LDES 1.0 conformance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ldes-conformance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  conformance:
+    name: OpenLDES client conformance
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out client
+        uses: actions/checkout@v5
+        with:
+          path: client
+
+      - name: Check out conformance suite
+        uses: actions/checkout@v5
+        with:
+          repository: pietercolpaert/ldes-client-conformance-test-suite
+          ref: main
+          path: suite
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: suite/package-lock.json
+
+      - name: Cache Maven packages
+        uses: actions/cache@v5
+        with:
+          path: suite/.cache/maven
+          key: ${{ runner.os }}-ldes-conformance-maven-${{ hashFiles('client/**/pom.xml', 'suite/adapters/openldes-ldi/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-ldes-conformance-maven-
+
+      - name: Install and validate conformance suite
+        working-directory: suite
+        run: |
+          npm ci
+          npm run build
+          node dist/cli.js validate --tests tests
+
+      - name: Record the client revision under test
+        working-directory: suite
+        run: |
+          sed -i \
+            's/clientRevision: "[0-9a-f]*"/clientRevision: process.env.LDES_CT_CLIENT_REVISION ?? "unknown"/' \
+            adapters/openldes-ldi/adapter.mjs
+
+      - name: Build OpenLDES conformance adapter
+        working-directory: suite
+        env:
+          LDES_CT_OPENLDES_ROOT: ${{ github.workspace }}/client
+        run: adapters/openldes-ldi/build.sh
+
+      - name: Run LDES 1.0 conformance tests
+        working-directory: suite
+        env:
+          LDES_CT_CLIENT_REVISION: ${{ github.sha }}
+          LDES_CT_OPENLDES_ROOT: ${{ github.workspace }}/client
+        run: |
+          node dist/cli.js run \
+            --adapter openldes-ldi \
+            --tests tests \
+            --out "${{ github.workspace }}/ldes-conformance-report" \
+            --no-fail
+
+      - name: Add coverage report to job summary
+        if: always()
+        run: |
+          if [ -f ldes-conformance-report/coverage.md ]; then
+            cat ldes-conformance-report/coverage.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload conformance evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ldes-conformance-${{ github.sha }}
+          path: ldes-conformance-report
+          if-no-files-found: error
