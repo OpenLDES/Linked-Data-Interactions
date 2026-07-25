@@ -19,7 +19,7 @@ public class EventStreamPropertiesFetcher {
 	public EventStreamProperties fetchEventStreamProperties(PropertiesRequest request) {
 		final EventStreamProperties eventStreamProperties = executePropertiesRequest(request);
 
-		if(eventStreamProperties.containsRequiredProperties()) {
+		if(!eventStreamProperties.needsEventStreamFollowUp()) {
 			return eventStreamProperties;
 		}
 
@@ -32,12 +32,12 @@ public class EventStreamPropertiesFetcher {
 
 		if(response.isOk()) {
 			return response.getBody()
-					.map(body -> RdfResponseParser.parseModel(
+					.map(body -> RdfResponseParser.parseDataset(
 							body,
 							response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null),
 							request.url(),
 							request.lang()))
-					.map(StartingNodeSpecificationFactory::fromModel)
+					.map(StartingNodeSpecificationFactory::fromDataset)
 					.map(StartingNodeSpecification::extractEventStreamProperties)
 					.orElseThrow();
 		}
