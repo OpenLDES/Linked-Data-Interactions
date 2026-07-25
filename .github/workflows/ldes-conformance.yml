@@ -61,12 +61,17 @@ jobs:
           npm run build
           node dist/cli.js validate --tests tests
 
-      - name: Record the client revision under test
+      - name: Prepare adapter metadata and dataset output
         working-directory: suite
         run: |
           sed -i \
             's/clientRevision: "[0-9a-f]*"/clientRevision: process.env.LDES_CT_CLIENT_REVISION ?? "unknown"/' \
             adapters/openldes-ldi/adapter.mjs
+          sed -i \
+            's/RDFDataMgr.write(dataset, member.getModel(), Lang.NTRIPLES);/RDFDataMgr.write(dataset, member.getDataset(), Lang.NQUADS);/' \
+            adapters/openldes-ldi/src/main/java/org/openldes/conformance/OpenLdesAdapter.java
+          grep -q 'member.getDataset(), Lang.NQUADS' \
+            adapters/openldes-ldi/src/main/java/org/openldes/conformance/OpenLdesAdapter.java
 
       - name: Build OpenLDES conformance adapter
         working-directory: suite

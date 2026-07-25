@@ -49,6 +49,12 @@ public class StartingTreeNodeFinder {
 
 	private StartingTreeNode selectStartingNode(StartingNodeRequest startingNodeRequest, Model model) {
 		log.atInfo().log("Parsing response for: " + startingNodeRequest.url());
+		if (model.contains(
+				null,
+				ViewSpecification.TREE_VIEW,
+				model.createResource(startingNodeRequest.url()))) {
+			return new StartingTreeNode(startingNodeRequest.url());
+		}
 		return startingNodeSpecifications
 				.stream()
 				.filter(startingNodeSpecification -> startingNodeSpecification.test(model))

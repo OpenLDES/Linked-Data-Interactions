@@ -2,14 +2,17 @@ package ldes.client.treenodefetcher.domain.valueobjects;
 
 import org.openldes.ldi.timestampextractor.TimestampExtractor;
 import ldes.client.treenodefetcher.domain.entities.TreeMember;
-import org.apache.jena.graph.TripleBoundary;
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
@@ -20,18 +23,23 @@ import static ldes.client.treenodefetcher.domain.valueobjects.Constants.*;
  */
 public class ModelResponse {
 	private final TimestampExtractor timestampExtractor;
-	private final ModelExtract modelExtract = new ModelExtract(new StatementTripleBoundary(TripleBoundary.stopNowhere));
 	private final Dataset dataset;
 	private final Model model;
+	private final String treeNodeIri;
 
 	public ModelResponse(Model model, TimestampExtractor timestampExtractor) {
-		this(DatasetFactory.create(model), timestampExtractor);
+		this(DatasetFactory.create(model), timestampExtractor, null);
 	}
 
 	public ModelResponse(Dataset dataset, TimestampExtractor timestampExtractor) {
+		this(dataset, timestampExtractor, null);
+	}
+
+	public ModelResponse(Dataset dataset, TimestampExtractor timestampExtractor, String treeNodeIri) {
 		this.dataset = dataset;
 		this.model = dataset.getDefaultModel();
 		this.timestampExtractor = timestampExtractor;
+		this.treeNodeIri = treeNodeIri;
 	}
 
 	public List<String> getRelations() {
@@ -43,26 +51,82 @@ public class ModelResponse {
 
 	public List<TreeMember> getMembers() {
 		return extractMembers()
-				.map(memberStatement -> processMember(model, memberStatement))
+				.map(Statement::getResource)
+				.distinct()
+				.map(this::processMember)
 				.toList();
 	}
 
 	private Stream<Statement> extractMembers() {
-		StmtIterator memberIterator = model.listStatements(ANY_RESOURCE, W3ID_TREE_MEMBER, ANY_RESOURCE);
-
-		return Stream.iterate(memberIterator, Iterator::hasNext, UnaryOperator.identity())
-				.map(Iterator::next);
+		final List<Resource> selectedEventStreams = selectedEventStreams();
+		if (!selectedEventStreams.isEmpty()) {
+			return selectedEventStreams.stream()
+					.flatMap(eventStream -> statements(model.listStatements(
+							eventStream, W3ID_TREE_MEMBER, ANY_RESOURCE)));
+		}
+		return statements(model.listStatements(ANY_RESOURCE, W3ID_TREE_MEMBER, ANY_RESOURCE));
 	}
 
-	private TreeMember processMember(Model treeNodeModel, Statement memberStatement) {
-		final Model memberModel = modelExtract.extract(memberStatement.getObject().asResource(), treeNodeModel);
-		final String id = memberStatement.getObject().toString();
-		final LocalDateTime createdAt = timestampExtractor.extractTimestampWithSubject(ResourceFactory.createProperty(id), memberModel);
-		return new TreeMember(id, createdAt, memberModel);
+	private List<Resource> selectedEventStreams() {
+		if (treeNodeIri == null) {
+			return List.of();
+		}
+		return statements(model.listStatements(
+				ANY_RESOURCE,
+				W3ID_TREE_VIEW,
+				model.createResource(treeNodeIri)))
+				.map(Statement::getSubject)
+				.distinct()
+				.toList();
+	}
+
+	private TreeMember processMember(Resource member) {
+		final Dataset memberDataset = extractMemberDataset(member);
+		final TreeMember treeMember = new TreeMember(member.toString(), null, memberDataset);
+		final Model memberModel = treeMember.getModel();
+		final LocalDateTime createdAt = timestampExtractor.extractTimestampWithSubject(
+				memberModel.createResource(member.toString()),
+				memberModel);
+		return new TreeMember(member.toString(), createdAt, memberDataset);
+	}
+
+	private Dataset extractMemberDataset(Resource member) {
+		final Dataset memberDataset = DatasetFactory.create();
+		copySubjectStar(
+				member.asNode(),
+				model.getGraph(),
+				memberDataset.getDefaultModel().getGraph(),
+				new HashSet<>());
+
+		if (member.isURIResource() && dataset.containsNamedModel(member.getURI())) {
+			memberDataset.addNamedModel(
+					member.getURI(),
+					ModelFactory.createDefaultModel().add(dataset.getNamedModel(member.getURI())));
+		}
+		return memberDataset;
+	}
+
+	private void copySubjectStar(Node subject, org.apache.jena.graph.Graph source,
+	                             org.apache.jena.graph.Graph target, Set<Node> visited) {
+		if (!visited.add(subject)) {
+			return;
+		}
+		final Iterator<Triple> triples = source.find(subject, Node.ANY, Node.ANY);
+		while (triples.hasNext()) {
+			final Triple triple = triples.next();
+			target.add(triple);
+			if (triple.getObject().isBlank()) {
+				copySubjectStar(triple.getObject(), source, target, visited);
+			}
+		}
 	}
 
 	private Stream<Statement> extractRelations() {
-		return Stream.iterate(model.listStatements(ANY_RESOURCE, W3ID_TREE_RELATION, ANY_RESOURCE),
-				Iterator::hasNext, UnaryOperator.identity()).map(Iterator::next);
+		return statements(model.listStatements(ANY_RESOURCE, W3ID_TREE_RELATION, ANY_RESOURCE));
+	}
+
+	private Stream<Statement> statements(StmtIterator iterator) {
+		return Stream.iterate(iterator, Iterator::hasNext, UnaryOperator.identity())
+				.map(Iterator::next);
 	}
 }

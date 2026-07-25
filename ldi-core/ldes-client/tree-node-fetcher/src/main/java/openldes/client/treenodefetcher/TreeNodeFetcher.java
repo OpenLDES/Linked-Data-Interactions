@@ -56,10 +56,11 @@ public class TreeNodeFetcher {
 		final ModelResponse modelResponse = new ModelResponse(
 				RdfResponseParser.parseDataset(
 						responseBody,
-						contentType,
-						treeNodeRequest.getTreeNodeUrl(),
-						treeNodeRequest.getLang()),
-				timestampExtractor);
+							contentType,
+							treeNodeRequest.getTreeNodeUrl(),
+							treeNodeRequest.getLang()),
+				timestampExtractor,
+				treeNodeRequest.getTreeNodeUrl());
 		final MutabilityStatus mutabilityStatus = getMutabilityStatus(response);
 		return new TreeNodeResponse(modelResponse.getRelations(), modelResponse.getMembers(), mutabilityStatus);
 	}
