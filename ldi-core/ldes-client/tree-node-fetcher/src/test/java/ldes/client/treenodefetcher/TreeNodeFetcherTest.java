@@ -13,6 +13,7 @@ import org.apache.jena.riot.RDFLanguages;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -69,5 +70,53 @@ class TreeNodeFetcherTest {
 		assertThat(response.getRelations()).containsExactly(
 				"https://example.com/rdf-immutable",
 				"https://example.com/header-immutable");
+	}
+
+	@Test
+	void should_FollowRedirectAndReturnRedirectedTreeNodeContent() {
+		final String body = """
+				@prefix ex: <https://example.com/vocab/> .
+				@prefix ldes: <https://w3id.org/ldes#> .
+				@prefix tree: <https://w3id.org/tree#> .
+
+				<> ldes:immutable true .
+				<https://example.com/stream> tree:view <https://example.com/root>;
+				    tree:member <https://example.com/member/old>, <https://example.com/member/new> .
+				<https://example.com/member/old> ex:value "old" .
+				<https://example.com/member/new> ex:value "new" .
+				""";
+		final List<String> requestedUrls = new ArrayList<>();
+		final TreeNodeFetcher treeNodeFetcher = new TreeNodeFetcher(
+				request -> {
+					requestedUrls.add(request.getUrl());
+					if (request.getUrl().equals("https://example.com/2022")) {
+						return new Response(
+								new GetRequest(request.getUrl(), RequestHeaders.empty()),
+								List.of(new BasicHeader(HttpHeaders.LOCATION, "/2022-rebalanced")),
+								HttpStatus.SC_MOVED_TEMPORARILY,
+								(String) null);
+					}
+					return new Response(
+							new GetRequest(request.getUrl(), RequestHeaders.empty()),
+							List.of(new BasicHeader(HttpHeaders.CONTENT_TYPE, "text/turtle")),
+							HttpStatus.SC_OK,
+							body);
+				},
+				new TimestampFromCurrentTimeExtractor());
+
+		final TreeNodeResponse response = treeNodeFetcher.fetchTreeNode(new TreeNodeRequest(
+				"https://example.com/2022",
+				RDFLanguages.TURTLE,
+				"\"old-v1\""));
+
+		assertThat(requestedUrls).containsExactly(
+				"https://example.com/2022",
+				"https://example.com/2022-rebalanced");
+		assertThat(response.getMutabilityStatus().isMutable()).isFalse();
+		assertThat(response.getMembers())
+				.extracting(member -> member.getMemberId())
+				.containsExactly(
+						"https://example.com/member/old",
+						"https://example.com/member/new");
 	}
 }
