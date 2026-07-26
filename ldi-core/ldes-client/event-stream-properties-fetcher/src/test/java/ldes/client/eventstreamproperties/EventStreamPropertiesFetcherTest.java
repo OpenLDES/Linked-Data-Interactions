@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -46,6 +47,26 @@ class EventStreamPropertiesFetcherTest {
 		final EventStreamProperties properties = fetcher.fetchEventStreamProperties(new PropertiesRequest("http://localhost:12121/observations", Lang.TTL));
 
 		verify(getRequestedFor(urlEqualTo("/observations")));
+		assertEventStreamProperties(properties);
+	}
+
+	@Test
+	void given_EventStreamReturnsRetryableStatus_when_FetchProperties_then_RetryAndReturnValidProperties() throws IOException, URISyntaxException {
+		URL resource = getClass().getClassLoader().getResource("models/eventstream.ttl");
+		final byte[] responseBytes = Files.readAllBytes(Path.of(Objects.requireNonNull(resource).toURI()));
+		stubFor(get("/observations")
+				.inScenario("Retry event stream properties")
+				.whenScenarioStateIs(STARTED)
+				.willSetStateTo("Retryable status returned")
+				.willReturn(aResponse().withStatus(408)));
+		stubFor(get("/observations")
+				.inScenario("Retry event stream properties")
+				.whenScenarioStateIs("Retryable status returned")
+				.willReturn(ok().withBody(responseBytes)));
+
+		final EventStreamProperties properties = fetcher.fetchEventStreamProperties(new PropertiesRequest("http://localhost:12121/observations", Lang.TTL));
+
+		verify(2, getRequestedFor(urlEqualTo("/observations")));
 		assertEventStreamProperties(properties);
 	}
 

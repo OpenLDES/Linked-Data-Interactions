@@ -5,6 +5,7 @@ import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
 import org.openldes.ldi.requestexecutor.executor.RetryableRequestExecutor;
 import org.openldes.ldi.requestexecutor.executor.retry.RetryConfig;
 import org.openldes.ldi.requestexecutor.services.RequestExecutorDecorator;
+import org.openldes.ldi.requestexecutor.services.SingleUseResponseRegistry;
 import org.openldes.ldi.requestexecutor.valueobjects.Request;
 import org.openldes.ldi.requestexecutor.valueobjects.Response;
 import org.openldes.ldi.timestampextractor.TimestampExtractor;
@@ -44,7 +45,7 @@ public class TreeNodeProcessor {
 	                         Consumer<ClientStatus> clientStatusConsumer) {
 		this.treeNodeRecordRepository = ldesClientRepositories.treeNodeRecordRepository();
 		this.memberRepository = ldesClientRepositories.memberRepository();
-		this.requestExecutor = new SingleUseOkResponseCache(withDefaultRetryPolicy(requestExecutor));
+		this.requestExecutor = new SingleUseOkResponseCache(requestExecutor, withDefaultRetryPolicy(requestExecutor));
 		this.clientStatusConsumer = clientStatusConsumer;
 		this.treeNodeFetcher = new TreeNodeFetcher(this.requestExecutor, timestampExtractor);
 		this.ldesMetaData = ldesMetaData;
@@ -61,12 +62,14 @@ public class TreeNodeProcessor {
 	}
 
 	private static class SingleUseOkResponseCache implements RequestExecutor {
+		private final RequestExecutor responseReuseOwner;
 		private final RequestExecutor requestExecutor;
 		private final Map<String, Response> okResponsesByUrl = new ConcurrentHashMap<>();
 		private volatile boolean captureOkResponses;
 		private volatile Response lastCapturedOkResponse;
 
-		private SingleUseOkResponseCache(RequestExecutor requestExecutor) {
+		private SingleUseOkResponseCache(RequestExecutor responseReuseOwner, RequestExecutor requestExecutor) {
+			this.responseReuseOwner = responseReuseOwner;
 			this.requestExecutor = requestExecutor;
 		}
 
@@ -91,7 +94,9 @@ public class TreeNodeProcessor {
 				return cachedResponse;
 			}
 
-			final Response response = requestExecutor.execute(request);
+			final Response response = SingleUseResponseRegistry
+					.consume(responseReuseOwner, request)
+					.orElseGet(() -> requestExecutor.execute(request));
 			if (captureOkResponses && response.isOk()) {
 				okResponsesByUrl.put(request.getUrl(), response);
 				lastCapturedOkResponse = response;
