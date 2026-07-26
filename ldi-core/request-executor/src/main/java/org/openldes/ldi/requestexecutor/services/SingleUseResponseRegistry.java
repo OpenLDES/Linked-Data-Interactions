@@ -5,16 +5,17 @@ import org.openldes.ldi.requestexecutor.valueobjects.Request;
 import org.openldes.ldi.requestexecutor.valueobjects.Response;
 
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.WeakHashMap;
 
 /**
  * Shares already fetched successful responses between client setup steps that
  * use the same request executor. Entries are consumed at most once.
  */
 public final class SingleUseResponseRegistry {
-	private static final Map<RequestExecutor, Map<String, Response>> RESPONSES_BY_EXECUTOR = new WeakHashMap<>();
+	private static final Map<RequestExecutor, Map<String, Response>> RESPONSES_BY_EXECUTOR = new IdentityHashMap<>();
+	private static final Map<RequestExecutor, Map<String, String>> RESOLVED_URLS_BY_EXECUTOR = new IdentityHashMap<>();
 
 	private SingleUseResponseRegistry() {
 	}
@@ -24,13 +25,29 @@ public final class SingleUseResponseRegistry {
 			return;
 		}
 
+		capture(owner, response.getRequestedUrl(), response);
+	}
+
+	public static synchronized void capture(RequestExecutor owner, String url, Response response) {
+		if (owner == null || url == null || response == null || !response.isOk()) {
+			return;
+		}
+
 		RESPONSES_BY_EXECUTOR
 				.computeIfAbsent(owner, ignored -> new HashMap<>())
-				.put(response.getRequestedUrl(), response);
+				.put(url, response);
 	}
 
 	public static synchronized Optional<Response> consume(RequestExecutor owner, Request request) {
 		if (owner == null || request == null) {
+			return Optional.empty();
+		}
+
+		return consume(owner, request.getUrl());
+	}
+
+	public static synchronized Optional<Response> consume(RequestExecutor owner, String url) {
+		if (owner == null || url == null) {
 			return Optional.empty();
 		}
 
@@ -39,10 +56,43 @@ public final class SingleUseResponseRegistry {
 			return Optional.empty();
 		}
 
-		final Response response = responsesByUrl.remove(request.getUrl());
+		final Response response = responsesByUrl.remove(url);
 		if (responsesByUrl.isEmpty()) {
 			RESPONSES_BY_EXECUTOR.remove(owner);
 		}
 		return Optional.ofNullable(response);
+	}
+
+	public static synchronized void alias(RequestExecutor owner, String sourceUrl, String aliasUrl) {
+		if (owner == null || sourceUrl == null || aliasUrl == null || sourceUrl.equals(aliasUrl)) {
+			return;
+		}
+
+		final Map<String, Response> responsesByUrl = RESPONSES_BY_EXECUTOR.get(owner);
+		if (responsesByUrl == null) {
+			return;
+		}
+
+		Optional.ofNullable(responsesByUrl.get(sourceUrl))
+				.ifPresent(response -> responsesByUrl.put(aliasUrl, response));
+	}
+
+	public static synchronized void resolve(RequestExecutor owner, String sourceUrl, String resolvedUrl) {
+		if (owner == null || sourceUrl == null || resolvedUrl == null) {
+			return;
+		}
+
+		RESOLVED_URLS_BY_EXECUTOR
+				.computeIfAbsent(owner, ignored -> new HashMap<>())
+				.put(sourceUrl, resolvedUrl);
+	}
+
+	public static synchronized Optional<String> resolvedUrl(RequestExecutor owner, String sourceUrl) {
+		if (owner == null || sourceUrl == null) {
+			return Optional.empty();
+		}
+
+		return Optional.ofNullable(RESOLVED_URLS_BY_EXECUTOR.get(owner))
+				.map(resolvedUrls -> resolvedUrls.get(sourceUrl));
 	}
 }

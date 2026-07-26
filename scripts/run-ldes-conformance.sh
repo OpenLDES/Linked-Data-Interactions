@@ -131,6 +131,59 @@ rm -f -- "${adapter_java}.bak"
 grep -q 'member.getDataset(), Lang.NQUADS' "${adapter_java}" ||
   die "the latest suite adapter is incompatible with the OpenLDES dataset API"
 
+ADAPTER_JAVA="${adapter_java}" node <<'NODE'
+const fs = require("node:fs");
+
+const adapterJava = process.env.ADAPTER_JAVA;
+let source = fs.readFileSync(adapterJava, "utf8");
+
+const contextFetch = `        EventStreamProperties properties = new EventStreamPropertiesFetcher(requestExecutor)
+                .fetchEventStreamProperties(new PropertiesRequest(input.path("entrypoint").asText(), Lang.TURTLE));`;
+const contextFetchWithCache = `        Path contextCachePath = Path.of(input.path("stateDirectory").asText()).resolve("openldes-context.json");
+        if (!"ordered".equals(input.path("mode").asText()) && Files.exists(contextCachePath)) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> context = JSON.readValue(Files.readString(contextCachePath), Map.class);
+            context.put("runId", runId);
+            emit(protocol, context);
+            return new EventStreamProperties(
+                    (String) context.get("eventStream"),
+                    (String) context.get("rootNode"),
+                    (String) context.get("versionOfPath"),
+                    (String) context.get("timestampPath"),
+                    List.of(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    org.apache.jena.query.DatasetFactory.create());
+        }
+
+        EventStreamProperties properties = new EventStreamPropertiesFetcher(requestExecutor)
+                .fetchEventStreamProperties(new PropertiesRequest(input.path("entrypoint").asText(), Lang.TURTLE));`;
+
+const contextEmit = `        emit(protocol, context);
+        return properties;`;
+const contextEmitWithCache = `        if (!"ordered".equals(input.path("mode").asText())) {
+            Files.writeString(contextCachePath, JSON.writeValueAsString(context));
+        }
+        emit(protocol, context);
+        return properties;`;
+
+if (!source.includes(contextFetch)) {
+  throw new Error("Could not find OpenLDES adapter context fetch block to patch");
+}
+if (!source.includes(contextEmit)) {
+  throw new Error("Could not find OpenLDES adapter context emit block to patch");
+}
+
+source = source.replace(contextFetch, contextFetchWithCache);
+source = source.replace(contextEmit, contextEmitWithCache);
+fs.writeFileSync(adapterJava, source);
+NODE
+
 client_revision="$(git -C "${repository_root}" rev-parse HEAD 2>/dev/null || printf 'workspace')"
 if [[ -n "$(git -C "${repository_root}" status --porcelain 2>/dev/null)" ]]; then
   client_revision="${client_revision}-dirty"

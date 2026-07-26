@@ -15,12 +15,16 @@ public class StartingNodeSpecificationFactory {
 	}
 
 	public static StartingNodeSpecification fromDataset(Dataset dataset) {
+		return fromDataset(dataset, null);
+	}
+
+	public static StartingNodeSpecification fromDataset(Dataset dataset, String requestUrl) {
 		final Model model = dataset.getDefaultModel();
 		if (TreeNodeSpecification.isTreeNode(model)) {
 			return new TreeNodeSpecification(model);
 		}
-		if (ViewSpecification.isViewSpecification(model)) {
-			return new ViewSpecification(dataset);
+		if (ViewSpecification.isViewSpecificationCandidate(model)) {
+			return new ViewSpecification(dataset, requestUrl);
 		}
 		throw new IllegalStateException("The provided starting node must contain either a dcterms:isPartOf property or the ldes:versionOfPath and ldes:timestampPath properties");
 	}
