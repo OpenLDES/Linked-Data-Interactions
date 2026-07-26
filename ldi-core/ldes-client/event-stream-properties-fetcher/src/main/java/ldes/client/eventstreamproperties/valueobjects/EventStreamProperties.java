@@ -10,6 +10,8 @@ public final class EventStreamProperties {
 	private final String rootNode;
 	private final String versionOfPath;
 	private final String timestampPath;
+	private final List<String> sequencePath;
+	private final String transactionFinalizedPath;
 	private final String versionTimestampPath;
 	private final String versionSequencePath;
 	private final Integer pollingInterval;
@@ -28,6 +30,8 @@ public final class EventStreamProperties {
 				null,
 				versionOfPath,
 				timestampPath,
+				List.of(),
+				null,
 				null,
 				null,
 				null,
@@ -42,6 +46,8 @@ public final class EventStreamProperties {
 			String rootNode,
 			String versionOfPath,
 			String timestampPath,
+			List<String> sequencePath,
+			String transactionFinalizedPath,
 			String versionTimestampPath,
 			String versionSequencePath,
 			Integer pollingInterval,
@@ -53,6 +59,8 @@ public final class EventStreamProperties {
 		this.rootNode = rootNode;
 		this.versionOfPath = versionOfPath;
 		this.timestampPath = timestampPath;
+		this.sequencePath = List.copyOf(sequencePath);
+		this.transactionFinalizedPath = transactionFinalizedPath;
 		this.versionTimestampPath = versionTimestampPath;
 		this.versionSequencePath = versionSequencePath;
 		this.pollingInterval = pollingInterval;
@@ -76,6 +84,14 @@ public final class EventStreamProperties {
 
 	public String getTimestampPath() {
 		return timestampPath;
+	}
+
+	public List<String> getSequencePath() {
+		return sequencePath;
+	}
+
+	public String getTransactionFinalizedPath() {
+		return transactionFinalizedPath;
 	}
 
 	public String getVersionTimestampPath() {
