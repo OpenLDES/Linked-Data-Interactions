@@ -19,6 +19,7 @@ public class LdioLdesClientProperties {
 	public static final boolean DEFAULT_KEEP_STATE = false;
 	public static final boolean DEFAULT_USE_LATEST_STATE_FILTER = true;
 	public static final boolean DEFAULT_EXACTLY_ONCE_ENABLED = true;
+	public static final boolean DEFAULT_ORDERED = false;
 	private final ComponentProperties properties;
 
 	private LdioLdesClientProperties(ComponentProperties properties) {
@@ -47,6 +48,10 @@ public class LdioLdesClientProperties {
 		return properties.getOptionalBoolean(USE_EXACTLY_ONCE_FILTER)
 				.or(() -> getOptionalVersionMaterialisationBoolean().map(isEnabled -> !isEnabled))
 				.orElse(DEFAULT_EXACTLY_ONCE_ENABLED);
+	}
+
+	public boolean isOrderedEnabled() {
+		return properties.getOptionalBoolean(ORDERED).orElse(DEFAULT_ORDERED);
 	}
 
 	public boolean isVersionMaterialisationEnabled() {
@@ -93,7 +98,7 @@ public class LdioLdesClientProperties {
 	}
 
 	private static void warnIfExactlyOnceFilterMustBeDisabled(LdioLdesClientProperties clientProps) {
-		if(clientProps.isExactlyOnceEnabled()) {
+		if(clientProps.isVersionMaterialisationEnabled() && clientProps.isExactlyOnceEnabled()) {
 			log.warn("The exactly once filter can not be used while version materialisation is active, disabling filter");
 		}
 	}

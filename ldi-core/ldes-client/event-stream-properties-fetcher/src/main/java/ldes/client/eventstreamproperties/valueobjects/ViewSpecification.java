@@ -8,7 +8,9 @@ import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.vocabulary.RDF;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -25,6 +27,8 @@ public class ViewSpecification implements StartingNodeSpecification {
 	public static final Property TREE_VIEW_DESCRIPTION = createProperty("https://w3id.org/tree#", "viewDescription");
 	public static final Property LDES_VERSION_OF_PATH = createProperty(LDES, "versionOfPath");
 	public static final Property LDES_TIMESTAMP_PATH = createProperty(LDES, "timestampPath");
+	public static final Property LDES_SEQUENCE_PATH = createProperty(LDES, "sequencePath");
+	public static final Property LDES_TRANSACTION_FINALIZED_PATH = createProperty(LDES, "transactionFinalizedPath");
 	public static final Property LDES_VERSION_TIMESTAMP_PATH = createProperty(LDES, "versionTimestampPath");
 	public static final Property LDES_VERSION_SEQUENCE_PATH = createProperty(LDES, "versionSequencePath");
 	public static final Property LDES_POLLING_INTERVAL = createProperty(LDES, "pollingInterval");
@@ -56,6 +60,8 @@ public class ViewSpecification implements StartingNodeSpecification {
 				rootNode,
 				resourceUri(subject, LDES_VERSION_OF_PATH).orElse(null),
 				resourceUri(subject, LDES_TIMESTAMP_PATH).orElse(null),
+				propertyPath(subject, LDES_SEQUENCE_PATH),
+				resourceUri(subject, LDES_TRANSACTION_FINALIZED_PATH).orElse(null),
 				resourceUri(subject, LDES_VERSION_TIMESTAMP_PATH).orElse(null),
 				resourceUri(subject, LDES_VERSION_SEQUENCE_PATH).orElse(null),
 				integerValue(subject, LDES_POLLING_INTERVAL).orElse(null),
@@ -84,6 +90,39 @@ public class ViewSpecification implements StartingNodeSpecification {
 				.filter(RDFNode::isURIResource)
 				.map(RDFNode::asResource)
 				.map(Resource::getURI);
+	}
+
+	private List<String> propertyPath(Resource subject, Property property) {
+		return Optional.ofNullable(subject.getProperty(property))
+				.map(Statement::getObject)
+				.map(this::propertyPath)
+				.orElse(List.of());
+	}
+
+	private List<String> propertyPath(RDFNode pathNode) {
+		if (pathNode.isURIResource()) {
+			return List.of(pathNode.asResource().getURI());
+		}
+		if (!pathNode.isResource()) {
+			return List.of();
+		}
+
+		final List<String> path = new ArrayList<>();
+		RDFNode current = pathNode;
+		while (current.isResource() && !current.asResource().equals(RDF.nil)) {
+			final Resource listNode = current.asResource();
+			final RDFNode first = Optional.ofNullable(listNode.getProperty(RDF.first))
+					.map(Statement::getObject)
+					.orElse(null);
+			if (first == null || !first.isURIResource()) {
+				return List.of();
+			}
+			path.add(first.asResource().getURI());
+			current = Optional.ofNullable(listNode.getProperty(RDF.rest))
+					.map(Statement::getObject)
+					.orElse(RDF.nil);
+		}
+		return path;
 	}
 
 	private static Optional<Integer> integerValue(Resource subject, Property property) {
