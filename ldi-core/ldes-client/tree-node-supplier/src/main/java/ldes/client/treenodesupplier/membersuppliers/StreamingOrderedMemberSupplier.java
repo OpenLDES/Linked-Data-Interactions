@@ -54,6 +54,9 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 	private static final Property TREE_VALUE = ResourceFactory.createProperty(TREE, "value");
 	private static final Property SH_ALTERNATIVE_PATH = ResourceFactory.createProperty(SHACL, "alternativePath");
 	private static final Property SH_INVERSE_PATH = ResourceFactory.createProperty(SHACL, "inversePath");
+	private static final Property SH_ZERO_OR_ONE_PATH = ResourceFactory.createProperty(SHACL, "zeroOrOnePath");
+	private static final Property SH_ZERO_OR_MORE_PATH = ResourceFactory.createProperty(SHACL, "zeroOrMorePath");
+	private static final Property SH_ONE_OR_MORE_PATH = ResourceFactory.createProperty(SHACL, "oneOrMorePath");
 	private static final String TREE_GREATER_THAN = TREE + "GreaterThanRelation";
 	private static final String TREE_GREATER_THAN_OR_EQUAL_TO = TREE + "GreaterThanOrEqualToRelation";
 	private static final String TREE_LESS_THAN = TREE + "LessThanRelation";
@@ -328,6 +331,33 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 					.toList();
 		}
 
+		final RDFNode zeroOrOnePath = Optional.ofNullable(pathResource.getProperty(SH_ZERO_OR_ONE_PATH))
+				.map(statement -> statement.getObject())
+				.orElse(null);
+		if (zeroOrOnePath != null) {
+			final List<RDFNode> values = new ArrayList<>();
+			values.add(start);
+			values.addAll(evaluatePath(model, start, zeroOrOnePath));
+			return distinct(values);
+		}
+
+		final RDFNode zeroOrMorePath = Optional.ofNullable(pathResource.getProperty(SH_ZERO_OR_MORE_PATH))
+				.map(statement -> statement.getObject())
+				.orElse(null);
+		if (zeroOrMorePath != null) {
+			final List<RDFNode> values = new ArrayList<>();
+			values.add(start);
+			values.addAll(evaluateOneOrMorePath(model, start, zeroOrMorePath));
+			return distinct(values);
+		}
+
+		final RDFNode oneOrMorePath = Optional.ofNullable(pathResource.getProperty(SH_ONE_OR_MORE_PATH))
+				.map(statement -> statement.getObject())
+				.orElse(null);
+		if (oneOrMorePath != null) {
+			return evaluateOneOrMorePath(model, start, oneOrMorePath);
+		}
+
 		final List<RDFNode> sequence = rdfList(path);
 		if (!sequence.isEmpty()) {
 			List<RDFNode> current = List.of(start);
@@ -340,6 +370,34 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 		}
 
 		return List.of();
+	}
+
+	private static List<RDFNode> evaluateOneOrMorePath(Model model, RDFNode start, RDFNode path) {
+		final List<RDFNode> values = new ArrayList<>();
+		final Set<RDFNode> visited = new HashSet<>();
+		List<RDFNode> frontier = evaluatePath(model, start, path);
+		while (!frontier.isEmpty()) {
+			final List<RDFNode> nextFrontier = new ArrayList<>();
+			for (RDFNode value : frontier) {
+				if (visited.add(value)) {
+					values.add(value);
+					nextFrontier.addAll(evaluatePath(model, value, path));
+				}
+			}
+			frontier = nextFrontier;
+		}
+		return values;
+	}
+
+	private static List<RDFNode> distinct(List<RDFNode> values) {
+		final List<RDFNode> distinctValues = new ArrayList<>();
+		final Set<RDFNode> seen = new HashSet<>();
+		for (RDFNode value : values) {
+			if (seen.add(value)) {
+				distinctValues.add(value);
+			}
+		}
+		return distinctValues;
 	}
 
 	private static List<RDFNode> evaluateInversePath(Model model, RDFNode start, RDFNode inversePath) {

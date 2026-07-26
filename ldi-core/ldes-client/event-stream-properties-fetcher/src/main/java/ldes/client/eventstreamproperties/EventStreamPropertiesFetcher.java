@@ -26,12 +26,15 @@ public class EventStreamPropertiesFetcher {
 
 	public EventStreamProperties fetchEventStreamProperties(PropertiesRequest request) {
 		final EventStreamProperties eventStreamProperties = executePropertiesRequest(request);
+		SingleUseResponseRegistry.resolve(responseReuseOwner, request.url(), eventStreamProperties.getRootNode());
 
 		if(!eventStreamProperties.needsEventStreamFollowUp()) {
 			return eventStreamProperties;
 		}
 
-		return executePropertiesRequest(request.withUrl(eventStreamProperties.getUri()));
+		final EventStreamProperties followedEventStreamProperties = executePropertiesRequest(request.withUrl(eventStreamProperties.getUri()));
+		SingleUseResponseRegistry.resolve(responseReuseOwner, request.url(), followedEventStreamProperties.getRootNode());
+		return followedEventStreamProperties;
 
 	}
 
@@ -39,23 +42,24 @@ public class EventStreamPropertiesFetcher {
 		final Response response = requestExecutor.execute(request.createRequest());
 
 		if(response.isOk()) {
-			SingleUseResponseRegistry.capture(responseReuseOwner, response);
+			SingleUseResponseRegistry.capture(responseReuseOwner, request.url(), response);
 			return response.getBody()
 					.map(body -> RdfResponseParser.parseDataset(
 							body,
 							response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null),
 							request.url(),
 							request.lang()))
-					.map(StartingNodeSpecificationFactory::fromDataset)
+					.map(dataset -> StartingNodeSpecificationFactory.fromDataset(dataset, request.url()))
 					.map(StartingNodeSpecification::extractEventStreamProperties)
 					.orElseThrow();
 		}
 
 		if(response.isRedirect()) {
-			return response.getRedirectLocation()
-					.map(request::withUrl)
-					.map(this::executePropertiesRequest)
+			final String redirectLocation = response.getRedirectLocation()
 					.orElseThrow(() -> new IllegalStateException("No Location Header in redirect."));
+			final EventStreamProperties properties = executePropertiesRequest(request.withUrl(redirectLocation));
+			SingleUseResponseRegistry.alias(responseReuseOwner, redirectLocation, request.url());
+			return properties;
 		}
 
 		throw new UnsupportedOperationException(

@@ -36,24 +36,26 @@ public class ViewSpecification implements StartingNodeSpecification {
 
 	private final Model model;
 	private final Dataset dataset;
+	private final String requestUrl;
 
 	public ViewSpecification(Model model) {
 		this(DatasetFactory.create(model));
 	}
 
 	public ViewSpecification(Dataset dataset) {
+		this(dataset, null);
+	}
+
+	public ViewSpecification(Dataset dataset, String requestUrl) {
 		this.dataset = dataset;
 		this.model = dataset.getDefaultModel();
+		this.requestUrl = requestUrl;
 	}
 
 	@Override
 	public EventStreamProperties extractEventStreamProperties() {
-		final Resource subject = extractEventStream(model).orElseThrow();
-		final String rootNode = Optional.ofNullable(subject.getPropertyResourceValue(TREE_VIEW))
-				.filter(RDFNode::isURIResource)
-				.map(RDFNode::asResource)
-				.map(Resource::getURI)
-				.orElse(null);
+		final Resource subject = extractEventStream().orElseThrow();
+		final String rootNode = rootNode(subject);
 		final List<String> viewDescriptions = resources(rootNode, TREE_VIEW_DESCRIPTION);
 		return new EventStreamProperties(
 				subject.getURI(),
@@ -76,13 +78,58 @@ public class ViewSpecification implements StartingNodeSpecification {
 		return extractEventStream(model).isPresent();
 	}
 
+	public static boolean isViewSpecificationCandidate(Model model) {
+		return model.contains(null, RDF_SYNTAX_TYPE, LDES_EVENT_STREAM) || model.contains(null, TREE_VIEW);
+	}
+
 	private static Optional<Resource> extractEventStream(Model model) {
-		final Optional<Resource> typedEventStream = model.listSubjectsWithProperty(RDF_SYNTAX_TYPE, LDES_EVENT_STREAM)
-				.nextOptional();
-		if (typedEventStream.isPresent()) {
-			return typedEventStream;
+		final List<Resource> typedEventStreams = model.listSubjectsWithProperty(RDF_SYNTAX_TYPE, LDES_EVENT_STREAM)
+				.toList();
+		if (!typedEventStreams.isEmpty()) {
+			if (typedEventStreams.size() > 1) {
+				throw new IllegalStateException("Expected exactly one ldes:EventStream subject, found " + typedEventStreams.size());
+			}
+			return Optional.of(typedEventStreams.getFirst());
 		}
-		return model.listSubjectsWithProperty(TREE_VIEW).nextOptional();
+		final List<Resource> eventStreamsWithView = model.listSubjectsWithProperty(TREE_VIEW).toList();
+		if (eventStreamsWithView.size() > 1) {
+			throw new IllegalStateException("Expected exactly one subject with tree:view, found " + eventStreamsWithView.size());
+		}
+		return eventStreamsWithView.stream().findFirst();
+	}
+
+	private Optional<Resource> extractEventStream() {
+		final List<Resource> typedEventStreams = model.listSubjectsWithProperty(RDF_SYNTAX_TYPE, LDES_EVENT_STREAM)
+				.toList();
+		final List<Resource> candidates = typedEventStreams.isEmpty()
+				? model.listSubjectsWithProperty(TREE_VIEW).toList()
+				: typedEventStreams;
+		final List<Resource> matchingCurrentRequest = candidates.stream()
+				.filter(candidate -> requestUrl != null && model.listObjectsOfProperty(candidate, TREE_VIEW)
+						.toList()
+						.stream()
+						.anyMatch(view -> view.isURIResource() && requestUrl.equals(view.asResource().getURI())))
+				.toList();
+		final List<Resource> selectedCandidates = matchingCurrentRequest.isEmpty() ? candidates : matchingCurrentRequest;
+		if (selectedCandidates.size() > 1) {
+			throw new IllegalStateException("Expected exactly one discoverable event stream, found " + selectedCandidates.size());
+		}
+		return selectedCandidates.stream().findFirst();
+	}
+
+	private String rootNode(Resource subject) {
+		final List<String> rootNodes = model.listObjectsOfProperty(subject, TREE_VIEW)
+				.toList()
+				.stream()
+				.filter(RDFNode::isURIResource)
+				.map(RDFNode::asResource)
+				.map(Resource::getURI)
+				.distinct()
+				.toList();
+		if (rootNodes.size() > 1) {
+			throw new IllegalStateException("Expected exactly one tree:view target, found " + rootNodes.size());
+		}
+		return rootNodes.stream().findFirst().orElse(null);
 	}
 
 	private static Optional<String> resourceUri(Resource subject, Property property) {
