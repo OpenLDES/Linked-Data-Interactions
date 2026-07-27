@@ -71,7 +71,7 @@ class EventStreamPropertiesFetcherTest {
 	}
 
 	@Test
-	void given_EventStreamWitRedirects_when_FetchProperties_then_ReturnValidProperties() throws IOException, URISyntaxException {
+	void given_EventStreamWithRedirects_when_FetchProperties_then_ReturnValidProperties() throws IOException, URISyntaxException {
 		URL resource = getClass().getClassLoader().getResource("models/eventstream.ttl");
 		final byte[] responseBytes = Files.readAllBytes(Path.of(Objects.requireNonNull(resource).toURI()));
 		stubFor(get("/observations").willReturn(temporaryRedirect("http://localhost:12121/observations-redirected")));
