@@ -22,9 +22,10 @@ public class ViewSpecification implements StartingNodeSpecification {
 	public static final Property LDES_EVENT_STREAM = createProperty(LDES, "EventStream");
 	public static final String RDF_SYNTAX = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 	public static final Property RDF_SYNTAX_TYPE = createProperty(RDF_SYNTAX, "type");
-	public static final Property TREE_SHAPE = createProperty("https://w3id.org/tree#", "shape");
-	public static final Property TREE_VIEW = createProperty("https://w3id.org/tree#", "view");
-	public static final Property TREE_VIEW_DESCRIPTION = createProperty("https://w3id.org/tree#", "viewDescription");
+	public static final String TREE = "https://w3id.org/tree#";
+	public static final Property TREE_SHAPE = createProperty(TREE, "shape");
+	public static final Property TREE_VIEW = createProperty(TREE, "view");
+	public static final Property TREE_VIEW_DESCRIPTION = createProperty(TREE, "viewDescription");
 	public static final Property LDES_VERSION_OF_PATH = createProperty(LDES, "versionOfPath");
 	public static final Property LDES_TIMESTAMP_PATH = createProperty(LDES, "timestampPath");
 	public static final Property LDES_SEQUENCE_PATH = createProperty(LDES, "sequencePath");
@@ -55,7 +56,7 @@ public class ViewSpecification implements StartingNodeSpecification {
 	@Override
 	public EventStreamProperties extractEventStreamProperties() {
 		final Resource subject = extractEventStream().orElseThrow();
-		final String rootNode = rootNode(subject);
+		final String rootNode = subject.getURI();
 		final List<String> viewDescriptions = resources(rootNode, TREE_VIEW_DESCRIPTION);
 		return new EventStreamProperties(
 				subject.getURI(),
@@ -115,21 +116,6 @@ public class ViewSpecification implements StartingNodeSpecification {
 			throw new IllegalStateException("Expected exactly one discoverable event stream, found " + selectedCandidates.size());
 		}
 		return selectedCandidates.stream().findFirst();
-	}
-
-	private String rootNode(Resource subject) {
-		final List<String> rootNodes = model.listObjectsOfProperty(subject, TREE_VIEW)
-				.toList()
-				.stream()
-				.filter(RDFNode::isURIResource)
-				.map(RDFNode::asResource)
-				.map(Resource::getURI)
-				.distinct()
-				.toList();
-		if (rootNodes.size() > 1) {
-			throw new IllegalStateException("Expected exactly one tree:view target, found " + rootNodes.size());
-		}
-		return rootNodes.stream().findFirst().orElse(null);
 	}
 
 	private static Optional<String> resourceUri(Resource subject, Property property) {

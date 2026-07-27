@@ -251,10 +251,12 @@ class OrderedMemberSupplierTest {
 
 		@Override
 		public void init() {
+			// Do nothing
 		}
 
 		@Override
 		public void destroyState() {
+			// Do nothing
 		}
 	}
 }
