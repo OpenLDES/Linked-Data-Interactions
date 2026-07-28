@@ -68,25 +68,40 @@ class ResponseTest {
 			assertThat(response.getRedirectLocation()).isEmpty();
 		}
 
+		@Test
+		void shouldReturnEmptyWhenRequestIsMissing() {
+			Header header = new BasicHeader(HttpHeaders.LOCATION, "/root");
+			Response response = new Response(null, List.of(header), 302, "body");
+
+			assertThat(response.getRedirectLocation()).isEmpty();
+		}
+
+		@Test
+		void shouldPreservePortWhenResolvingRootRelativeLocation() {
+			Request request = new GetRequest("http://localhost:12121/entry", RequestHeaders.empty());
+			Header header = new BasicHeader(HttpHeaders.LOCATION, "/root");
+			Response response = new Response(request, List.of(header), 302, "body");
+
+			assertThat(response.getRedirectLocation()).contains("http://localhost:12121/root");
+		}
+
 		@ParameterizedTest
 		@ArgumentsSource(LocationProvider.class)
-		void foo(String testName, String location) {
-			assertThat(testName).isNotNull();
-
+		void shouldResolveLocationAgainstRequestUrl(String location, String expectedLocation) {
 			Request request = new GetRequest("https://example.com/blog/article", RequestHeaders.empty());
 			Header header = new BasicHeader(HttpHeaders.LOCATION, location);
 			Response response = new Response(request, List.of(header), 302, "body");
 
-			assertThat(response.getRedirectLocation()).contains("https://example.com/blog/chat");
+			assertThat(response.getRedirectLocation()).contains(expectedLocation);
 		}
 
 		static class LocationProvider implements ArgumentsProvider {
 			@Override
 			public Stream<Arguments> provideArguments(ExtensionContext context) {
 				return Stream.of(
-						Arguments.of("shouldReturnLocationUrl_whenAbsolute", "https://example.com/blog/chat"),
-						Arguments.of("shouldAddBaseUrlToLocationUrl_whenRelativeAbsolute", "/blog/chat"),
-						Arguments.of("shouldAddUrlToLocationUrl_whenRelativeRelative", "chat"));
+						Arguments.of("https://example.com/blog/chat", "https://example.com/blog/chat"),
+						Arguments.of("/blog/chat", "https://example.com/blog/chat"),
+						Arguments.of("chat", "https://example.com/blog/chat"));
 			}
 		}
 

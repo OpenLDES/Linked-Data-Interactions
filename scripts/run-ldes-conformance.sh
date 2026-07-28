@@ -114,7 +114,8 @@ git clone --quiet --depth 1 --branch main \
 )
 
 # These compatibility edits can be removed once the suite's OpenLDES adapter
-# consumes the dataset API and obtains the tested revision from the environment.
+# consumes the dataset API, obtains the tested revision from the environment,
+# and counts a metadata response reused for traversal as an already visited root.
 adapter_module="${suite_dir}/adapters/openldes-ldi/adapter.mjs"
 adapter_java="${suite_dir}/adapters/openldes-ldi/src/main/java/org/openldes/conformance/OpenLdesAdapter.java"
 
@@ -171,6 +172,34 @@ const contextEmitWithCache = `        if (!"ordered".equals(input.path("mode").a
         }
         emit(protocol, context);
         return properties;`;
+const beginTraversal = `            requestExecutor.beginTraversal();`;
+const beginTraversalWithRoot = `            requestExecutor.beginTraversal(properties.getRootNode());`;
+const traversalMethod = `        private void beginTraversal() {
+            visited.clear();
+            traversalStarted = true;
+        }`;
+const traversalMethodWithRoot = `        private void beginTraversal(String rootNode) {
+            final boolean rootFetchedDuringSetup = visited.contains(rootNode);
+            visited.clear();
+            if (rootFetchedDuringSetup) {
+                visited.add(rootNode);
+            }
+            traversalStarted = true;
+        }`;
+const traversalExecute = `        public Response execute(Request request) {
+            if (traversalStarted && !visited.add(request.getUrl())) {
+                throw new SynchronizationComplete();
+            }
+            return delegate.execute(request);
+        }`;
+const traversalExecuteWithSetupTracking = `        public Response execute(Request request) {
+            if (!traversalStarted) {
+                visited.add(request.getUrl());
+            } else if (!visited.add(request.getUrl())) {
+                throw new SynchronizationComplete();
+            }
+            return delegate.execute(request);
+        }`;
 
 if (!source.includes(contextFetch)) {
   throw new Error("Could not find OpenLDES adapter context fetch block to patch");
@@ -178,9 +207,17 @@ if (!source.includes(contextFetch)) {
 if (!source.includes(contextEmit)) {
   throw new Error("Could not find OpenLDES adapter context emit block to patch");
 }
+if (!source.includes(beginTraversal)
+    || !source.includes(traversalMethod)
+    || !source.includes(traversalExecute)) {
+  throw new Error("Could not find OpenLDES adapter traversal boundary to patch");
+}
 
 source = source.replace(contextFetch, contextFetchWithCache);
 source = source.replace(contextEmit, contextEmitWithCache);
+source = source.replace(beginTraversal, beginTraversalWithRoot);
+source = source.replace(traversalMethod, traversalMethodWithRoot);
+source = source.replace(traversalExecute, traversalExecuteWithSetupTracking);
 fs.writeFileSync(adapterJava, source);
 NODE
 
