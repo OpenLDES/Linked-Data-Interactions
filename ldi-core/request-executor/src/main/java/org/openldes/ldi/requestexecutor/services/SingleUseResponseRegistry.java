@@ -20,14 +20,6 @@ public final class SingleUseResponseRegistry {
 	private SingleUseResponseRegistry() {
 	}
 
-	public static synchronized void capture(RequestExecutor owner, Response response) {
-		if (owner == null || response == null || !response.isOk()) {
-			return;
-		}
-
-		capture(owner, response.getRequestedUrl(), response);
-	}
-
 	public static synchronized void capture(RequestExecutor owner, String url, Response response) {
 		if (owner == null || url == null || response == null || !response.isOk()) {
 			return;
@@ -63,20 +55,6 @@ public final class SingleUseResponseRegistry {
 		return Optional.ofNullable(response);
 	}
 
-	public static synchronized void alias(RequestExecutor owner, String sourceUrl, String aliasUrl) {
-		if (owner == null || sourceUrl == null || aliasUrl == null || sourceUrl.equals(aliasUrl)) {
-			return;
-		}
-
-		final Map<String, Response> responsesByUrl = RESPONSES_BY_EXECUTOR.get(owner);
-		if (responsesByUrl == null) {
-			return;
-		}
-
-		Optional.ofNullable(responsesByUrl.get(sourceUrl))
-				.ifPresent(response -> responsesByUrl.put(aliasUrl, response));
-	}
-
 	public static synchronized void resolve(RequestExecutor owner, String sourceUrl, String resolvedUrl) {
 		if (owner == null || sourceUrl == null || resolvedUrl == null) {
 			return;
@@ -87,12 +65,20 @@ public final class SingleUseResponseRegistry {
 				.put(sourceUrl, resolvedUrl);
 	}
 
-	public static synchronized Optional<String> resolvedUrl(RequestExecutor owner, String sourceUrl) {
+	public static synchronized Optional<String> consumeResolvedUrl(RequestExecutor owner, String sourceUrl) {
 		if (owner == null || sourceUrl == null) {
 			return Optional.empty();
 		}
 
-		return Optional.ofNullable(RESOLVED_URLS_BY_EXECUTOR.get(owner))
-				.map(resolvedUrls -> resolvedUrls.get(sourceUrl));
+		final Map<String, String> resolvedUrls = RESOLVED_URLS_BY_EXECUTOR.get(owner);
+		if (resolvedUrls == null) {
+			return Optional.empty();
+		}
+
+		final String resolvedUrl = resolvedUrls.remove(sourceUrl);
+		if (resolvedUrls.isEmpty()) {
+			RESOLVED_URLS_BY_EXECUTOR.remove(owner);
+		}
+		return Optional.ofNullable(resolvedUrl);
 	}
 }

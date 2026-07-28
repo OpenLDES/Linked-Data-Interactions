@@ -10,8 +10,10 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.vocabulary.RDF;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -56,10 +58,11 @@ public class ViewSpecification implements StartingNodeSpecification {
 	@Override
 	public EventStreamProperties extractEventStreamProperties() {
 		final Resource subject = extractEventStream().orElseThrow();
-		final String rootNode = subject.getURI();
+		final String eventStreamUri = requireUri(subject, "event stream");
+		final String rootNode = extractRootNode(subject).orElse(eventStreamUri);
 		final List<String> viewDescriptions = resources(rootNode, TREE_VIEW_DESCRIPTION);
 		return new EventStreamProperties(
-				subject.getURI(),
+				eventStreamUri,
 				rootNode,
 				resourceUri(subject, LDES_VERSION_OF_PATH).orElse(null),
 				resourceUri(subject, LDES_TIMESTAMP_PATH).orElse(null),
@@ -84,38 +87,87 @@ public class ViewSpecification implements StartingNodeSpecification {
 	}
 
 	private static Optional<Resource> extractEventStream(Model model) {
-		final List<Resource> typedEventStreams = model.listSubjectsWithProperty(RDF_SYNTAX_TYPE, LDES_EVENT_STREAM)
-				.toList();
-		if (!typedEventStreams.isEmpty()) {
-			if (typedEventStreams.size() > 1) {
-				throw new IllegalStateException("Expected exactly one ldes:EventStream subject, found " + typedEventStreams.size());
-			}
-			return Optional.of(typedEventStreams.getFirst());
-		}
-		final List<Resource> eventStreamsWithView = model.listSubjectsWithProperty(TREE_VIEW).toList();
-		if (eventStreamsWithView.size() > 1) {
-			throw new IllegalStateException("Expected exactly one subject with tree:view, found " + eventStreamsWithView.size());
-		}
-		return eventStreamsWithView.stream().findFirst();
+		final List<Resource> typedEventStreams = typedEventStreams(model);
+		return typedEventStreams.isEmpty()
+				? selectSingle(model.listSubjectsWithProperty(TREE_VIEW).toList(), "subject with tree:view")
+				: selectSingle(typedEventStreams, "ldes:EventStream subject");
 	}
 
 	private Optional<Resource> extractEventStream() {
-		final List<Resource> typedEventStreams = model.listSubjectsWithProperty(RDF_SYNTAX_TYPE, LDES_EVENT_STREAM)
+		final List<Resource> candidates = eventStreamCandidates(model);
+		final List<Resource> matchingCandidates = candidates.stream()
+				.filter(this::containsMatchingView)
 				.toList();
-		final List<Resource> candidates = typedEventStreams.isEmpty()
+		return selectSingle(
+				matchingCandidates.isEmpty() ? candidates : matchingCandidates,
+				"discoverable event stream");
+	}
+
+	private static List<Resource> eventStreamCandidates(Model model) {
+		final List<Resource> typedEventStreams = typedEventStreams(model);
+		return typedEventStreams.isEmpty()
 				? model.listSubjectsWithProperty(TREE_VIEW).toList()
 				: typedEventStreams;
-		final List<Resource> matchingCurrentRequest = candidates.stream()
-				.filter(candidate -> requestUrl != null && model.listObjectsOfProperty(candidate, TREE_VIEW)
-						.toList()
-						.stream()
-						.anyMatch(view -> view.isURIResource() && requestUrl.equals(view.asResource().getURI())))
-				.toList();
-		final List<Resource> selectedCandidates = matchingCurrentRequest.isEmpty() ? candidates : matchingCurrentRequest;
-		if (selectedCandidates.size() > 1) {
-			throw new IllegalStateException("Expected exactly one discoverable event stream, found " + selectedCandidates.size());
+	}
+
+	private static List<Resource> typedEventStreams(Model model) {
+		return model.listSubjectsWithProperty(RDF_SYNTAX_TYPE, LDES_EVENT_STREAM).toList();
+	}
+
+	private static Optional<Resource> selectSingle(List<Resource> candidates, String description) {
+		if (candidates.size() > 1) {
+			throw new IllegalStateException(
+					"Expected exactly one " + description + ", found " + candidates.size());
 		}
-		return selectedCandidates.stream().findFirst();
+		return candidates.stream().findFirst();
+	}
+
+	private boolean containsMatchingView(Resource candidate) {
+		return resources(candidate, TREE_VIEW).stream().anyMatch(this::matchesRequestUrl);
+	}
+
+	private Optional<String> extractRootNode(Resource eventStream) {
+		final List<String> viewTargets = resources(eventStream, TREE_VIEW);
+		if (viewTargets.size() < 2) {
+			return viewTargets.stream().findFirst();
+		}
+
+		final List<String> matchingViews = viewTargets.stream()
+				.filter(this::matchesRequestUrl)
+				.toList();
+		if (matchingViews.size() != 1) {
+			throw new IllegalStateException(
+					"Expected exactly one tree:view target matching the entrypoint, found " + matchingViews.size());
+		}
+		return Optional.of(matchingViews.getFirst());
+	}
+
+	private boolean matchesRequestUrl(String viewUrl) {
+		if (requestUrl == null) {
+			return false;
+		}
+
+		try {
+			final URI request = URI.create(requestUrl).normalize();
+			final URI view = URI.create(viewUrl).normalize();
+			if (!Objects.equals(request.getScheme(), view.getScheme())
+					|| !Objects.equals(request.getAuthority(), view.getAuthority())) {
+				return false;
+			}
+			final String requestPath = Optional.ofNullable(request.getPath()).orElse("");
+			final String viewPath = Optional.ofNullable(view.getPath()).orElse("");
+			return Objects.equals(requestPath, viewPath)
+					|| requestPath.startsWith(viewPath.endsWith("/") ? viewPath : viewPath + "/");
+		} catch (IllegalArgumentException ignored) {
+			return requestUrl.equals(viewUrl);
+		}
+	}
+
+	private static String requireUri(Resource resource, String description) {
+		if (!resource.isURIResource()) {
+			throw new IllegalStateException("Expected " + description + " to be identified by an IRI");
+		}
+		return resource.getURI();
 	}
 
 	private static Optional<String> resourceUri(Resource subject, Property property) {

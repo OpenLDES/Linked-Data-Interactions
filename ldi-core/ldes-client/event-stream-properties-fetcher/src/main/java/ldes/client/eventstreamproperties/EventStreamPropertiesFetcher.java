@@ -1,19 +1,15 @@
 package ldes.client.eventstreamproperties;
 
-import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
-import org.openldes.ldi.requestexecutor.executor.RetryableRequestExecutor;
-import org.openldes.ldi.requestexecutor.executor.retry.RetryConfig;
-import org.openldes.ldi.requestexecutor.services.RequestExecutorDecorator;
-import org.openldes.ldi.requestexecutor.services.SingleUseResponseRegistry;
-import org.openldes.ldi.requestexecutor.valueobjects.Response;
-import org.openldes.ldi.rdf.parser.RdfResponseParser;
 import ldes.client.eventstreamproperties.services.StartingNodeSpecificationFactory;
 import ldes.client.eventstreamproperties.valueobjects.EventStreamProperties;
 import ldes.client.eventstreamproperties.valueobjects.PropertiesRequest;
 import ldes.client.eventstreamproperties.valueobjects.StartingNodeSpecification;
 import org.apache.http.HttpHeaders;
-
-import java.util.List;
+import org.openldes.ldi.rdf.parser.RdfResponseParser;
+import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.requestexecutor.services.RequestExecutorDecorator;
+import org.openldes.ldi.requestexecutor.services.SingleUseResponseRegistry;
+import org.openldes.ldi.requestexecutor.valueobjects.Response;
 
 public class EventStreamPropertiesFetcher {
 	private final RequestExecutor responseReuseOwner;
@@ -21,60 +17,58 @@ public class EventStreamPropertiesFetcher {
 
 	public EventStreamPropertiesFetcher(RequestExecutor requestExecutor) {
 		this.responseReuseOwner = requestExecutor;
-		this.requestExecutor = withDefaultRetryPolicy(requestExecutor);
+		this.requestExecutor = RequestExecutorDecorator.withDefaultRetryPolicy(requestExecutor);
 	}
 
 	public EventStreamProperties fetchEventStreamProperties(PropertiesRequest request) {
-		final EventStreamProperties eventStreamProperties = executePropertiesRequest(request);
-		SingleUseResponseRegistry.resolve(responseReuseOwner, request.url(), eventStreamProperties.getRootNode());
-
-		if(!eventStreamProperties.needsEventStreamFollowUp()) {
-			return eventStreamProperties;
+		PropertiesResponse propertiesResponse = executePropertiesRequest(request, request.url());
+		if (propertiesResponse.properties().needsEventStreamFollowUp()) {
+			propertiesResponse = executePropertiesRequest(
+					request.withUrl(propertiesResponse.properties().getUri()),
+					request.url());
 		}
 
-		final EventStreamProperties followedEventStreamProperties = executePropertiesRequest(request.withUrl(eventStreamProperties.getUri()));
-		SingleUseResponseRegistry.resolve(responseReuseOwner, request.url(), followedEventStreamProperties.getRootNode());
-		return followedEventStreamProperties;
-
+		prepareTraversalResponse(request.url(), propertiesResponse);
+		return propertiesResponse.properties();
 	}
 
-	private EventStreamProperties executePropertiesRequest(PropertiesRequest request) {
+	private PropertiesResponse executePropertiesRequest(PropertiesRequest request, String discoveryUrl) {
 		final Response response = requestExecutor.execute(request.createRequest());
 
-		if(response.isOk()) {
-			SingleUseResponseRegistry.capture(responseReuseOwner, request.url(), response);
-			return response.getBody()
+		if (response.isOk()) {
+			final EventStreamProperties properties = response.getBody()
 					.map(body -> RdfResponseParser.parseDataset(
 							body,
 							response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null),
 							request.url(),
 							request.lang()))
-					.map(dataset -> StartingNodeSpecificationFactory.fromDataset(dataset, request.url()))
+					.map(dataset -> StartingNodeSpecificationFactory.fromDataset(dataset, discoveryUrl))
 					.map(StartingNodeSpecification::extractEventStreamProperties)
-					.orElseThrow();
+					.orElseThrow(() -> new IllegalStateException("Event stream properties response has no body."));
+			return new PropertiesResponse(properties, request.url(), response);
 		}
 
-		if(response.isRedirect()) {
+		if (response.isRedirect()) {
 			final String redirectLocation = response.getRedirectLocation()
-					.orElseThrow(() -> new IllegalStateException("No Location Header in redirect."));
-			final EventStreamProperties properties = executePropertiesRequest(request.withUrl(redirectLocation));
-			SingleUseResponseRegistry.alias(responseReuseOwner, redirectLocation, request.url());
-			return properties;
+					.orElseThrow(() -> new IllegalStateException("No Location header in redirect response."));
+			return executePropertiesRequest(request.withUrl(redirectLocation), discoveryUrl);
 		}
 
 		throw new UnsupportedOperationException(
 				"Cannot handle response " + response.getHttpStatus() + " of EventStreamPropertiesRequest " + request);
 	}
 
-	private static RequestExecutor withDefaultRetryPolicy(RequestExecutor requestExecutor) {
-		if (requestExecutor instanceof RetryableRequestExecutor) {
-			return requestExecutor;
+	private void prepareTraversalResponse(String entrypoint, PropertiesResponse propertiesResponse) {
+		final String rootNode = propertiesResponse.properties().getRootNode();
+		SingleUseResponseRegistry.resolve(responseReuseOwner, entrypoint, rootNode);
+		if (rootNode != null && rootNode.equals(propertiesResponse.responseUrl())) {
+			SingleUseResponseRegistry.capture(
+					responseReuseOwner,
+					propertiesResponse.responseUrl(),
+					propertiesResponse.response());
 		}
-
-		return RequestExecutorDecorator
-				.decorate(requestExecutor)
-				.with(RetryConfig.of(RetryConfig.DEFAULT_MAX_ATTEMPTS, List.of()).getRetry())
-				.get();
 	}
 
+	private record PropertiesResponse(EventStreamProperties properties, String responseUrl, Response response) {
+	}
 }

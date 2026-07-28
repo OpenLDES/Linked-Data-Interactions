@@ -2,8 +2,6 @@ package ldes.client.treenodesupplier;
 
 import org.openldes.ldi.requestexecutor.exceptions.HttpRequestException;
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
-import org.openldes.ldi.requestexecutor.executor.RetryableRequestExecutor;
-import org.openldes.ldi.requestexecutor.executor.retry.RetryConfig;
 import org.openldes.ldi.requestexecutor.services.RequestExecutorDecorator;
 import org.openldes.ldi.requestexecutor.services.SingleUseResponseRegistry;
 import org.openldes.ldi.requestexecutor.valueobjects.Request;
@@ -49,20 +47,12 @@ public class TreeNodeProcessor {
 		this.treeNodeRecordRepository = ldesClientRepositories.treeNodeRecordRepository();
 		this.memberRepository = ldesClientRepositories.memberRepository();
 		this.responseReuseOwner = requestExecutor;
-		this.requestExecutor = new SingleUseOkResponseCache(requestExecutor, withDefaultRetryPolicy(requestExecutor));
+		this.requestExecutor = new SingleUseOkResponseCache(
+				requestExecutor,
+				RequestExecutorDecorator.withDefaultRetryPolicy(requestExecutor));
 		this.clientStatusConsumer = clientStatusConsumer;
 		this.treeNodeFetcher = new TreeNodeFetcher(this.requestExecutor, timestampExtractor);
 		this.ldesMetaData = ldesMetaData;
-	}
-
-	private static RequestExecutor withDefaultRetryPolicy(RequestExecutor requestExecutor) {
-		if (requestExecutor instanceof RetryableRequestExecutor) {
-			return requestExecutor;
-		}
-		return RequestExecutorDecorator
-				.decorate(requestExecutor)
-				.with(RetryConfig.of(RetryConfig.DEFAULT_MAX_ATTEMPTS, List.of()).getRetry())
-				.get();
 	}
 
 	private static class SingleUseOkResponseCache implements RequestExecutor {
@@ -223,9 +213,8 @@ public class TreeNodeProcessor {
 			ldesMetaData.getStartingNodeUrls()
 					.stream()
 					.map(startingNode -> {
-						final Optional<String> resolvedStartingNode = SingleUseResponseRegistry.resolvedUrl(responseReuseOwner, startingNode);
+						final Optional<String> resolvedStartingNode = SingleUseResponseRegistry.consumeResolvedUrl(responseReuseOwner, startingNode);
 						if (resolvedStartingNode.isPresent()) {
-							requestExecutor.alias(startingNode, resolvedStartingNode.get());
 							requestExecutor.alias(resolvedStartingNode.get(), resolvedStartingNode.get());
 							return new StartingTreeNode(resolvedStartingNode.get(), ldesMetaData.getLang());
 						}

@@ -70,21 +70,12 @@ public class Response {
 	}
 
 	public Optional<String> getRedirectLocation() {
-		return getFirstHeaderValue(HttpHeaders.LOCATION).map(location -> {
-			if (location.startsWith("http://") || location.startsWith("https://")) {
-				return location;
-			}
+		if (request == null) {
+			return Optional.empty();
+		}
 
-			if (location.startsWith("/")) {
-				URI uri = URI.create(request.getUrl());
-				String baseUrl = uri.getScheme() + "://" + uri.getHost();
-				return baseUrl + location;
-			}
-
-			URI uri = URI.create(request.getUrl());
-			int lastIndexOf = uri.toString().lastIndexOf("/");
-			return uri.toString().substring(0, lastIndexOf) + "/" + location;
-		});
+		return getFirstHeaderValue(HttpHeaders.LOCATION)
+				.map(location -> URI.create(request.getUrl()).resolve(location).toString());
 	}
 
 	public Optional<byte[]> getBody() {
