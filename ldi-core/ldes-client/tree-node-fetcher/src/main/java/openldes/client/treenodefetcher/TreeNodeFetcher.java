@@ -22,6 +22,7 @@ import org.apache.jena.sparql.core.Quad;
 
 import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -123,7 +124,7 @@ public class TreeNodeFetcher {
 
 	private static MutabilityStatus getMutabilityStatus(Response response, ModelResponse modelResponse) {
 		if (modelResponse.isImmutable()) {
-			return new MutabilityStatus(false, LocalDateTime.now());
+			return new MutabilityStatus(false, LocalDateTime.now(ZoneOffset.UTC));
 		}
 		return response.getFirstHeaderValue(HttpHeaders.CACHE_CONTROL)
 				.map(MutabilityStatus::ofHeader)
@@ -200,7 +201,7 @@ public class TreeNodeFetcher {
 
 	private static MutabilityStatus getEmptyCacheControlMutabilityStatus(ModelResponse modelResponse) {
 		if (modelResponse.getMembers().isEmpty() && modelResponse.getRelations().isEmpty()) {
-			return new MutabilityStatus(false, LocalDateTime.now());
+			return new MutabilityStatus(false, LocalDateTime.now(ZoneOffset.UTC));
 		}
 		return MutabilityStatus.empty();
 	}
