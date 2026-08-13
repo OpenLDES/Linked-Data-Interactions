@@ -58,6 +58,26 @@ class ViewSpecificationTest {
 		assertThat(properties.getTransactionFinalizedObject().asLiteral().getString()).isEqualTo("done");
 	}
 
+	@Test
+	void usesTheRequestUrlAsRootWhenNoViewIsAdvertised() {
+		final String entrypoint = "http://localhost:10101/exampleData?generatedAtTime=2022-05-03T00:00:00.000Z";
+		final Model model = RDFParser.fromString("""
+				@prefix ldes: <https://w3id.org/ldes#> .
+				@prefix prov: <http://www.w3.org/ns/prov#> .
+				@prefix dcterms: <http://purl.org/dc/terms/> .
+
+				<localhost:10101/exampleData> a ldes:EventStream ;
+					ldes:timestampPath prov:generatedAtTime ;
+					ldes:versionOfPath dcterms:isVersionOf .
+				""").lang(Lang.TURTLE).toModel();
+
+		final EventStreamProperties properties = specification(model, entrypoint)
+				.extractEventStreamProperties();
+
+		assertThat(properties.getUri()).isEqualTo("localhost:10101/exampleData");
+		assertThat(properties.getRootNode()).isEqualTo(entrypoint);
+	}
+
 	private static ViewSpecification specification(Model model, String entrypoint) {
 		return new ViewSpecification(DatasetFactory.create(model), entrypoint);
 	}

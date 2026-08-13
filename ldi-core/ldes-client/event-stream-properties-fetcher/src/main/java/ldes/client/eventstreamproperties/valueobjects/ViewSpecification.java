@@ -61,7 +61,8 @@ public class ViewSpecification implements StartingNodeSpecification {
 	public EventStreamProperties extractEventStreamProperties() {
 		final Resource subject = extractEventStream().orElseThrow();
 		final String eventStreamUri = requireUri(subject, "event stream");
-		final String rootNode = extractRootNode(subject).orElse(eventStreamUri);
+		final String rootNode = extractRootNode(subject)
+				.orElseGet(() -> requestUrl == null ? eventStreamUri : requestUrl);
 		final List<String> viewDescriptions = resources(rootNode, TREE_VIEW_DESCRIPTION);
 		return EventStreamProperties.builder(eventStreamUri)
 				.rootNode(rootNode)
