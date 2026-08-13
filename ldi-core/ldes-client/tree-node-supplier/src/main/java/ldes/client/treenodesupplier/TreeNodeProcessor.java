@@ -38,6 +38,7 @@ public class TreeNodeProcessor {
 	private final RequestExecutor responseReuseOwner;
 	private final SingleUseOkResponseCache requestExecutor;
 	private final Consumer<ClientStatus> clientStatusConsumer;
+	private final Set<String> explicitStartingNodes = ConcurrentHashMap.newKeySet();
 	private final Set<String> seenMemberIds = ConcurrentHashMap.newKeySet();
 	private MemberRecord memberRecord;
 
@@ -53,6 +54,7 @@ public class TreeNodeProcessor {
 		this.clientStatusConsumer = clientStatusConsumer;
 		this.treeNodeFetcher = new TreeNodeFetcher(this.requestExecutor, timestampExtractor);
 		this.ldesMetaData = ldesMetaData;
+		this.explicitStartingNodes.addAll(ldesMetaData.getStartingNodeUrls());
 	}
 
 	private static class SingleUseOkResponseCache implements RequestExecutor {
@@ -157,11 +159,12 @@ public class TreeNodeProcessor {
 	}
 
 	private List<TreeMember> getNewMembersFromResponse(TreeNodeResponse treeNodeResponse, TreeNodeRecord treeNodeRecord) {
+		final boolean explicitStartingNode = explicitStartingNodes.contains(treeNodeRecord.getTreeNodeUrl());
 		return treeNodeResponse
 				.getMembers()
 				.stream()
 				.filter(member -> !treeNodeRecord.hasReceived(member.getMemberId()))
-				.filter(member -> seenMemberIds.add(member.getMemberId()))
+				.filter(member -> seenMemberIds.add(member.getMemberId()) || explicitStartingNode)
 				.toList();
 	}
 
@@ -225,6 +228,7 @@ public class TreeNodeProcessor {
 						}
 						return start;
 					})
+					.peek(start -> explicitStartingNodes.add(start.getStartingNodeUrl()))
 					.map(start -> new TreeNodeRecord(start.getStartingNodeUrl()))
 					.forEach(treeNodeRecordRepository::saveTreeNodeRecord);
 		} finally {
