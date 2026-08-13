@@ -7,6 +7,7 @@ import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.*;
+import org.openldes.ldi.rdf.DatasetHolder;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -90,7 +91,7 @@ public class ModelResponse {
 
 	private TreeMember processMember(Resource member) {
 		final Dataset memberDataset = extractMemberDataset(member);
-		final Model memberModel = flatten(memberDataset);
+		final Model memberModel = DatasetHolder.flatten(memberDataset);
 		final LocalDateTime createdAt = timestampExtractor.extractTimestampWithSubject(
 				memberModel.createResource(member.toString()),
 				memberModel);
@@ -126,13 +127,6 @@ public class ModelResponse {
 				copySubjectStar(triple.getObject(), source, target, visited);
 			}
 		}
-	}
-
-	private static Model flatten(Dataset dataset) {
-		final Model flattenedModel = ModelFactory.createDefaultModel()
-				.add(dataset.getDefaultModel());
-		dataset.listNames().forEachRemaining(name -> flattenedModel.add(dataset.getNamedModel(name)));
-		return flattenedModel;
 	}
 
 	private Stream<Statement> extractRelations() {

@@ -2,9 +2,8 @@ package ldes.client.treenodesupplier.domain.entities;
 
 import ldes.client.treenodesupplier.domain.valueobject.SuppliedMember;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
+import org.openldes.ldi.rdf.DatasetHolder;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -14,20 +13,17 @@ import com.sun.istack.NotNull;
 public class MemberRecord implements Comparable<MemberRecord> {
 	private final String memberId;
 	private final LocalDateTime createdAt;
-	private final Dataset dataset;
-	private volatile Model model;
+	private final DatasetHolder rdf;
 
 	public MemberRecord(String memberId, Model model, LocalDateTime createdAt) {
 		this.memberId = memberId;
-		this.dataset = DatasetFactory.create(model);
-		this.model = model;
+		this.rdf = new DatasetHolder(model);
 		this.createdAt = createdAt;
 	}
 
 	public MemberRecord(String memberId, Dataset dataset, LocalDateTime createdAt) {
 		this.memberId = memberId;
-		this.dataset = dataset;
-		this.model = null;
+		this.rdf = new DatasetHolder(dataset);
 		this.createdAt = createdAt;
 	}
 
@@ -36,25 +32,15 @@ public class MemberRecord implements Comparable<MemberRecord> {
 	}
 
 	public SuppliedMember createSuppliedMember() {
-		return new SuppliedMember(memberId, dataset);
+		return new SuppliedMember(memberId, rdf.getDataset());
 	}
 
 	public Model getModel() {
-		if (model == null) {
-			model = flatten(dataset);
-		}
-		return model;
+		return rdf.getModel();
 	}
 
 	public Dataset getDataset() {
-		return dataset;
-	}
-
-	private static Model flatten(Dataset dataset) {
-		final Model flattenedModel = ModelFactory.createDefaultModel()
-				.add(dataset.getDefaultModel());
-		dataset.listNames().forEachRemaining(name -> flattenedModel.add(dataset.getNamedModel(name)));
-		return flattenedModel;
+		return rdf.getDataset();
 	}
 
 	@Override
