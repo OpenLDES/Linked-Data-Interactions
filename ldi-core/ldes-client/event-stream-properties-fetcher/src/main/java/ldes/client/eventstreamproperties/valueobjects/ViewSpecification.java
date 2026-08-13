@@ -31,7 +31,9 @@ public class ViewSpecification implements StartingNodeSpecification {
 	public static final Property LDES_VERSION_OF_PATH = createProperty(LDES, "versionOfPath");
 	public static final Property LDES_TIMESTAMP_PATH = createProperty(LDES, "timestampPath");
 	public static final Property LDES_SEQUENCE_PATH = createProperty(LDES, "sequencePath");
+	public static final Property LDES_TRANSACTION_PATH = createProperty(LDES, "transactionPath");
 	public static final Property LDES_TRANSACTION_FINALIZED_PATH = createProperty(LDES, "transactionFinalizedPath");
+	public static final Property LDES_TRANSACTION_FINALIZED_OBJECT = createProperty(LDES, "transactionFinalizedObject");
 	public static final Property LDES_VERSION_TIMESTAMP_PATH = createProperty(LDES, "versionTimestampPath");
 	public static final Property LDES_VERSION_SEQUENCE_PATH = createProperty(LDES, "versionSequencePath");
 	public static final Property LDES_POLLING_INTERVAL = createProperty(LDES, "pollingInterval");
@@ -61,21 +63,22 @@ public class ViewSpecification implements StartingNodeSpecification {
 		final String eventStreamUri = requireUri(subject, "event stream");
 		final String rootNode = extractRootNode(subject).orElse(eventStreamUri);
 		final List<String> viewDescriptions = resources(rootNode, TREE_VIEW_DESCRIPTION);
-		return new EventStreamProperties(
-				eventStreamUri,
-				rootNode,
-				resourceUri(subject, LDES_VERSION_OF_PATH).orElse(null),
-				resourceUri(subject, LDES_TIMESTAMP_PATH).orElse(null),
-				propertyPath(subject, LDES_SEQUENCE_PATH),
-				resourceUri(subject, LDES_TRANSACTION_FINALIZED_PATH).orElse(null),
-				resourceUri(subject, LDES_VERSION_TIMESTAMP_PATH).orElse(null),
-				resourceUri(subject, LDES_VERSION_SEQUENCE_PATH).orElse(null),
-				integerValue(subject, LDES_POLLING_INTERVAL).orElse(null),
-				resources(subject, TREE_SHAPE),
-				viewDescriptions,
-				retentionPolicies(rootNode, viewDescriptions),
-				dataset
-		);
+		return EventStreamProperties.builder(eventStreamUri)
+				.rootNode(rootNode)
+				.versionOfPath(resourceUri(subject, LDES_VERSION_OF_PATH).orElse(null))
+				.timestampPath(resourceUri(subject, LDES_TIMESTAMP_PATH).orElse(null))
+				.sequencePath(propertyPath(subject, LDES_SEQUENCE_PATH))
+				.transactionPath(resourceUri(subject, LDES_TRANSACTION_PATH).orElse(null))
+				.transactionFinalizedPath(resourceUri(subject, LDES_TRANSACTION_FINALIZED_PATH).orElse(null))
+				.transactionFinalizedObject(object(subject, LDES_TRANSACTION_FINALIZED_OBJECT).orElse(null))
+				.versionTimestampPath(resourceUri(subject, LDES_VERSION_TIMESTAMP_PATH).orElse(null))
+				.versionSequencePath(resourceUri(subject, LDES_VERSION_SEQUENCE_PATH).orElse(null))
+				.pollingInterval(integerValue(subject, LDES_POLLING_INTERVAL).orElse(null))
+				.shaclShapeUris(resources(subject, TREE_SHAPE))
+				.viewDescriptions(viewDescriptions)
+				.retentionPolicies(retentionPolicies(rootNode, viewDescriptions))
+				.contextDataset(dataset)
+				.build();
 	}
 
 	public static boolean isViewSpecification(Model model) {
@@ -175,6 +178,10 @@ public class ViewSpecification implements StartingNodeSpecification {
 				.filter(RDFNode::isURIResource)
 				.map(RDFNode::asResource)
 				.map(Resource::getURI);
+	}
+
+	private static Optional<RDFNode> object(Resource subject, Property property) {
+		return Optional.ofNullable(subject.getProperty(property)).map(Statement::getObject);
 	}
 
 	private List<String> propertyPath(Resource subject, Property property) {

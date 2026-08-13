@@ -24,14 +24,6 @@ public class StartingNodeRequest {
 		return ACCEPT_HEADER;
 	}
 
-	/**
-	 * @deprecated Use {@link #acceptHeader()}.
-	 */
-	@Deprecated(since = "3.2.0", forRemoval = true)
-	public String contentType() {
-		return acceptHeader();
-	}
-
 	public String url() {
 		return url;
 	}

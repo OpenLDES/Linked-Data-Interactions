@@ -20,6 +20,9 @@ import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.vocabulary.RDF;
 import org.openldes.ldi.rdf.parser.RdfResponseParser;
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.requestexecutor.services.RequestExecutorDecorator;
+import org.openldes.ldi.requestexecutor.services.SingleUseResponseRegistry;
+import org.openldes.ldi.requestexecutor.valueobjects.Request;
 import org.openldes.ldi.requestexecutor.valueobjects.Response;
 import org.openldes.ldi.timestampextractor.TimestampFromCurrentTimeExtractor;
 
@@ -64,6 +67,7 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 	private static final RDFNode DEFAULT_TRANSACTION_FINALIZED_OBJECT = ResourceFactory.createTypedLiteral(true);
 
 	private final LdesMetaData metadata;
+	private final RequestExecutor responseReuseOwner;
 	private final RequestExecutor requestExecutor;
 	private final MemberIdRepository memberIdRepository;
 	private final boolean keepState;
@@ -75,6 +79,11 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 	private final PriorityQueue<OrderedMember> members = new PriorityQueue<>();
 	private final Set<String> visitedNodes = new HashSet<>();
 
+	/**
+	 * Compatibility entry point for adapters compiled against the original API.
+	 * New callers should group the ordering settings in {@link OrderingConfiguration}.
+	 */
+	@SuppressWarnings("java:S107")
 	public StreamingOrderedMemberSupplier(
 			LdesMetaData metadata,
 			RequestExecutor requestExecutor,
@@ -86,19 +95,41 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 			Optional<RDFNode> transactionPath,
 			Optional<RDFNode> transactionFinalizedPath,
 			Optional<RDFNode> transactionFinalizedObject) {
+		this(
+				metadata,
+				requestExecutor,
+				memberIdRepository,
+				keepState,
+				new OrderingConfiguration(
+						rootNode,
+						timestampPath,
+						sequencePath,
+						transactionPath,
+						transactionFinalizedPath,
+						transactionFinalizedObject));
+	}
+
+	public StreamingOrderedMemberSupplier(
+			LdesMetaData metadata,
+			RequestExecutor requestExecutor,
+			MemberIdRepository memberIdRepository,
+			boolean keepState,
+			OrderingConfiguration ordering) {
 		this.metadata = metadata;
-		this.requestExecutor = requestExecutor;
+		this.responseReuseOwner = requestExecutor;
+		this.requestExecutor = RequestExecutorDecorator.withDefaultRetryPolicy(requestExecutor);
 		this.memberIdRepository = memberIdRepository;
 		this.keepState = keepState;
 		this.orderPaths = new ArrayList<>();
-		timestampPath.ifPresent(orderPaths::add);
-		sequencePath.ifPresent(orderPaths::add);
+		ordering.timestampPath().ifPresent(orderPaths::add);
+		ordering.sequencePath().ifPresent(orderPaths::add);
 		if (orderPaths.isEmpty()) {
 			throw new IllegalArgumentException("Ordered traversal requires ldes:timestampPath and/or ldes:sequencePath");
 		}
-		this.transactionPath = transactionPath.orElse(null);
-		this.transactionFinalizedPath = transactionFinalizedPath.orElse(null);
-		this.transactionFinalizedObject = transactionFinalizedObject.orElse(DEFAULT_TRANSACTION_FINALIZED_OBJECT);
+		this.transactionPath = ordering.transactionPath().orElse(null);
+		this.transactionFinalizedPath = ordering.transactionFinalizedPath().orElse(null);
+		this.transactionFinalizedObject = ordering.transactionFinalizedObject().orElse(DEFAULT_TRANSACTION_FINALIZED_OBJECT);
+		final String rootNode = ordering.rootNode();
 		this.frontier.add(new FrontierNode(rootNode == null ? metadata.getStartingNodeUrl() : rootNode, FrontierBound.unboundedBound()));
 	}
 
@@ -167,7 +198,9 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 
 	private FetchResult fetch(String url, List<String> redirectHistory) {
 		final TreeNodeRequest request = metadata.createRequest(url);
-		final Response response = requestExecutor.execute(request.createRequest());
+		final Request httpRequest = request.createRequest();
+		final Response response = SingleUseResponseRegistry.consume(responseReuseOwner, httpRequest)
+				.orElseGet(() -> requestExecutor.execute(httpRequest));
 		if (response.isRedirect()) {
 			final String location = response.getRedirectLocation()
 					.orElseThrow(() -> new IllegalStateException("No Location header in redirect."));
@@ -449,6 +482,15 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 	}
 
 	private record FetchResult(String url, Dataset dataset, List<TreeMember> members) {
+	}
+
+	public record OrderingConfiguration(
+			String rootNode,
+			Optional<RDFNode> timestampPath,
+			Optional<RDFNode> sequencePath,
+			Optional<RDFNode> transactionPath,
+			Optional<RDFNode> transactionFinalizedPath,
+			Optional<RDFNode> transactionFinalizedObject) {
 	}
 
 	private record FrontierNode(String url, FrontierBound lowerBound) implements Comparable<FrontierNode> {

@@ -152,20 +152,11 @@ const contextFetchWithCache = `        Path contextCachePath = Path.of(input.pat
             Map<String, Object> context = JSON.readValue(Files.readString(contextCachePath), Map.class);
             context.put("runId", runId);
             emit(protocol, context);
-            return new EventStreamProperties(
-                    (String) context.get("eventStream"),
-                    (String) context.get("rootNode"),
-                    (String) context.get("versionOfPath"),
-                    (String) context.get("timestampPath"),
-                    List.of(),
-                    null,
-                    null,
-                    null,
-                    null,
-                    List.of(),
-                    List.of(),
-                    List.of(),
-                    org.apache.jena.query.DatasetFactory.create());
+            return EventStreamProperties.builder((String) context.get("eventStream"))
+                    .rootNode((String) context.get("rootNode"))
+                    .versionOfPath((String) context.get("versionOfPath"))
+                    .timestampPath((String) context.get("timestampPath"))
+                    .build();
         }
 
         EventStreamProperties properties = new EventStreamPropertiesFetcher(requestExecutor)

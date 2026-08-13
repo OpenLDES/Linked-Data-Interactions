@@ -44,11 +44,13 @@ public class OrderedMemberSupplier implements MemberSupplier {
 	public OrderedMemberSupplier(MemberSupplier delegate, List<String> sequencePath, String transactionFinalizedPath) {
 		this(
 				delegate,
-				List.of(),
-				sequencePath == null || sequencePath.isEmpty() ? List.of() : List.of(pathFromUris(sequencePath)),
-				null,
-				transactionFinalizedPath == null ? null : ResourceFactory.createProperty(transactionFinalizedPath),
-				null);
+				Optional.empty(),
+				sequencePath == null || sequencePath.isEmpty()
+						? Optional.empty()
+						: Optional.of(pathFromUris(sequencePath)),
+				Optional.empty(),
+				Optional.ofNullable(transactionFinalizedPath).map(ResourceFactory::createProperty),
+				Optional.empty());
 	}
 
 	public OrderedMemberSupplier(
@@ -58,34 +60,16 @@ public class OrderedMemberSupplier implements MemberSupplier {
 			Optional<RDFNode> transactionPath,
 			Optional<RDFNode> transactionFinalizedPath,
 			Optional<RDFNode> transactionFinalizedObject) {
-		this(
-				delegate,
-				timestampPath.stream().toList(),
-				sequencePath.stream().toList(),
-				transactionPath.orElse(null),
-				transactionFinalizedPath.orElse(null),
-				transactionFinalizedObject.orElse(null));
-	}
-
-	private OrderedMemberSupplier(
-			MemberSupplier delegate,
-			List<RDFNode> timestampPaths,
-			List<RDFNode> sequencePaths,
-			RDFNode transactionPath,
-			RDFNode transactionFinalizedPath,
-			RDFNode transactionFinalizedObject) {
 		this.delegate = delegate;
 		this.orderPaths = new ArrayList<>();
-		this.orderPaths.addAll(timestampPaths);
-		this.orderPaths.addAll(sequencePaths);
+		timestampPath.ifPresent(orderPaths::add);
+		sequencePath.ifPresent(orderPaths::add);
 		if (orderPaths.isEmpty()) {
 			throw new IllegalArgumentException("Ordered traversal requires ldes:timestampPath and/or ldes:sequencePath");
 		}
-		this.transactionPath = transactionPath;
-		this.transactionFinalizedPath = transactionFinalizedPath;
-		this.transactionFinalizedObject = transactionFinalizedObject == null
-				? DEFAULT_TRANSACTION_FINALIZED_OBJECT
-				: transactionFinalizedObject;
+		this.transactionPath = transactionPath.orElse(null);
+		this.transactionFinalizedPath = transactionFinalizedPath.orElse(null);
+		this.transactionFinalizedObject = transactionFinalizedObject.orElse(DEFAULT_TRANSACTION_FINALIZED_OBJECT);
 	}
 
 	private static RDFNode pathFromUris(List<String> uris) {
@@ -131,11 +115,6 @@ public class OrderedMemberSupplier implements MemberSupplier {
 						isTransactionFinalizer(member)));
 			}
 		} catch (EndOfLdesException completed) {
-			return orderedIterator(members);
-		} catch (RuntimeException completed) {
-			if (!"SynchronizationComplete".equals(completed.getClass().getSimpleName())) {
-				throw completed;
-			}
 			return orderedIterator(members);
 		}
 	}

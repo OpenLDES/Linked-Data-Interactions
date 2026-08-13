@@ -16,6 +16,7 @@ import ldes.client.treenodesupplier.domain.valueobject.LdesMetaData;
 import ldes.client.treenodesupplier.membersuppliers.MemberSupplier;
 import ldes.client.treenodesupplier.membersuppliers.MemberSupplierImpl;
 import ldes.client.treenodesupplier.membersuppliers.StreamingOrderedMemberSupplier;
+import ldes.client.treenodesupplier.membersuppliers.StreamingOrderedMemberSupplier.OrderingConfiguration;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
@@ -71,12 +72,13 @@ public class MemberSupplierFactory {
 				requestExecutor,
 				ldesClientRepositories.memberIdRepository(),
 				clientProperties.isKeepStateEnabled(),
-				eventStreamProperties.getRootNode(),
-				path(eventStreamProperties, ViewSpecification.LDES_TIMESTAMP_PATH, Optional.ofNullable(eventStreamProperties.getTimestampPath()).map(MemberSupplierFactory::property)),
-				sequencePath(eventStreamProperties),
-				Optional.empty(),
-				path(eventStreamProperties, ViewSpecification.LDES_TRANSACTION_FINALIZED_PATH, Optional.ofNullable(eventStreamProperties.getTransactionFinalizedPath()).map(MemberSupplierFactory::property)),
-				Optional.empty());
+				new OrderingConfiguration(
+						eventStreamProperties.getRootNode(),
+						path(eventStreamProperties, ViewSpecification.LDES_TIMESTAMP_PATH, Optional.ofNullable(eventStreamProperties.getTimestampPath()).map(MemberSupplierFactory::property)),
+						sequencePath(eventStreamProperties),
+						path(eventStreamProperties, ViewSpecification.LDES_TRANSACTION_PATH, Optional.ofNullable(eventStreamProperties.getTransactionPath()).map(MemberSupplierFactory::property)),
+						path(eventStreamProperties, ViewSpecification.LDES_TRANSACTION_FINALIZED_PATH, Optional.ofNullable(eventStreamProperties.getTransactionFinalizedPath()).map(MemberSupplierFactory::property)),
+						Optional.ofNullable(eventStreamProperties.getTransactionFinalizedObject())));
 	}
 
 	private TreeNodeProcessor getTreeNodeProcessor(
