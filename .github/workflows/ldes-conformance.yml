@@ -42,6 +42,7 @@ jobs:
       - name: Run LDES 1.0 conformance tests
         run: >
           client/scripts/run-ldes-conformance.sh
+          --fail-on-non-pass
           --report-dir "${{ github.workspace }}/ldes-conformance-report"
 
       - name: Add coverage report to job summary
