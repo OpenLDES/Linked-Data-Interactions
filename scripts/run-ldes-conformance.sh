@@ -7,7 +7,7 @@ repository_root="$(cd -- "${script_dir}/.." && pwd)"
 invocation_dir="$(pwd -P)"
 report_dir="${repository_root}/target/ldes-conformance-report"
 tests_path="tests"
-fail_on_non_pass=false
+fail_on_non_pass=true
 work_dir=""
 runner_pid=""
 
@@ -19,12 +19,14 @@ Usage:
   scripts/run-ldes-conformance.sh [options]
 
 Options:
-  --fail-on-non-pass  Return a non-zero status when an applicable test does not pass.
+  --fail-on-non-pass  Return a non-zero status when an applicable test does not pass
+                      (default).
+  --no-fail           Report conformance gaps without making the command fail.
   --report-dir PATH   Write JSON, EARL, and Markdown evidence to PATH.
   --tests PATH        Run a suite test directory (default: tests).
   -h, --help          Show this help.
 
-By default, conformance gaps are reported without making the command fail.
+By default, any applicable non-passing test makes the command fail.
 The suite is cloned from its main branch on every invocation.
 EOF
 }
@@ -48,6 +50,10 @@ while (($#)); do
   case "$1" in
     --fail-on-non-pass)
       fail_on_non_pass=true
+      shift
+      ;;
+    --no-fail)
+      fail_on_non_pass=false
       shift
       ;;
     --report-dir)
