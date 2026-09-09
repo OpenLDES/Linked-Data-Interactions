@@ -21,6 +21,7 @@ public final class EventStreamProperties {
 	private final List<String> shaclShapeUris;
 	private final List<String> viewDescriptions;
 	private final List<String> retentionPolicies;
+	private final List<String> emptyRetentionPolicies;
 	private final Dataset contextDataset;
 
 	public EventStreamProperties(String uri) {
@@ -51,6 +52,7 @@ public final class EventStreamProperties {
 		this.shaclShapeUris = List.copyOf(builder.shaclShapeUris);
 		this.viewDescriptions = List.copyOf(builder.viewDescriptions);
 		this.retentionPolicies = List.copyOf(builder.retentionPolicies);
+		this.emptyRetentionPolicies = List.copyOf(builder.emptyRetentionPolicies);
 		this.contextDataset = builder.contextDataset;
 	}
 
@@ -118,6 +120,16 @@ public final class EventStreamProperties {
 		return retentionPolicies;
 	}
 
+	/**
+	 * @return the retention policies that are named by the event stream but have
+	 * no statements describing them in the page they were discovered on. LDES
+	 * 1.0 s4.4 makes a consumer assume such a view retains no members, so these
+	 * are reported apart from the policies that carry a description.
+	 */
+	public List<String> getEmptyRetentionPolicies() {
+		return emptyRetentionPolicies;
+	}
+
 	public Dataset getContextDataset() {
 		return contextDataset;
 	}
@@ -145,6 +157,7 @@ public final class EventStreamProperties {
 		private List<String> shaclShapeUris = List.of();
 		private List<String> viewDescriptions = List.of();
 		private List<String> retentionPolicies = List.of();
+		private List<String> emptyRetentionPolicies = List.of();
 		private Dataset contextDataset = DatasetFactory.create();
 
 		private Builder(String uri) {
@@ -213,6 +226,11 @@ public final class EventStreamProperties {
 
 		public Builder retentionPolicies(List<String> value) {
 			retentionPolicies = value;
+			return this;
+		}
+
+		public Builder emptyRetentionPolicies(List<String> value) {
+			emptyRetentionPolicies = value;
 			return this;
 		}
 

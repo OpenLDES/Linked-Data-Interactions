@@ -6,10 +6,15 @@ import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.sparql.core.DatasetGraph;
+import org.apache.jena.sparql.core.DatasetGraphFactory;
+import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.rdf.model.*;
 import org.openldes.ldi.rdf.DatasetHolder;
 
 import java.time.LocalDateTime;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -43,10 +48,21 @@ public class ModelResponse {
 		this.treeNodeIri = treeNodeIri;
 	}
 
+	/**
+	 * @return the IRIs this tree node relates to, in the order they are found.
+	 * Relations declared by another resource in the same response are not
+	 * included, and a relation naming several targets contributes all of them.
+	 */
 	public List<String> getRelations() {
 		return extractRelations()
-				.map(relationStatement -> relationStatement.getResource()
-						.getProperty(W3ID_TREE_NODE).getResource().toString())
+				.map(Statement::getObject)
+				.filter(RDFNode::isResource)
+				.map(RDFNode::asResource)
+				.flatMap(relation -> statements(relation.listProperties(W3ID_TREE_NODE)))
+				.map(Statement::getObject)
+				.filter(RDFNode::isURIResource)
+				.map(node -> node.asResource().getURI())
+				.distinct()
 				.toList();
 	}
 
@@ -98,39 +114,67 @@ public class ModelResponse {
 		return new TreeMember(member.toString(), createdAt, memberDataset, memberModel);
 	}
 
+	/**
+	 * Extracts one member as a dataset.
+	 * <p>
+	 * Starting at the member, the default-graph subject star is copied and every
+	 * blank node it reaches is expanded in turn, so connected blank-node
+	 * structures are included and cycles terminate. A node that also labels a
+	 * named graph contributes that graph under the same label, which covers both
+	 * a member IRI naming its own graph and a blank node reached from the member
+	 * naming one. Blank nodes found inside such a graph are expanded as well.
+	 */
 	private Dataset extractMemberDataset(Resource member) {
-		final Dataset memberDataset = DatasetFactory.create();
-		copySubjectStar(
-				member.asNode(),
-				model.getGraph(),
-				memberDataset.getDefaultModel().getGraph(),
-				new HashSet<>());
+		final DatasetGraph source = dataset.asDatasetGraph();
+		final DatasetGraph target = DatasetGraphFactory.create();
+		final Deque<Node> pending = new ArrayDeque<>();
+		final Set<Node> visited = new HashSet<>();
+		pending.add(member.asNode());
 
-		if (member.isURIResource() && dataset.containsNamedModel(member.getURI())) {
-			memberDataset.addNamedModel(
-					member.getURI(),
-					ModelFactory.createDefaultModel().add(dataset.getNamedModel(member.getURI())));
+		while (!pending.isEmpty()) {
+			final Node node = pending.remove();
+			if (!visited.add(node)) {
+				continue;
+			}
+			copySubjectStar(source, target, node, pending);
+			copyLabelledGraph(source, target, node, pending);
 		}
-		return memberDataset;
+		return DatasetFactory.wrap(target);
 	}
 
-	private void copySubjectStar(Node subject, org.apache.jena.graph.Graph source,
-	                             org.apache.jena.graph.Graph target, Set<Node> visited) {
-		if (!visited.add(subject)) {
-			return;
-		}
-		final Iterator<Triple> triples = source.find(subject, Node.ANY, Node.ANY);
+	private void copySubjectStar(DatasetGraph source, DatasetGraph target, Node node, Deque<Node> pending) {
+		final Iterator<Triple> triples = source.getDefaultGraph().find(node, Node.ANY, Node.ANY);
 		while (triples.hasNext()) {
 			final Triple triple = triples.next();
-			target.add(triple);
-			if (triple.getObject().isBlank()) {
-				copySubjectStar(triple.getObject(), source, target, visited);
-			}
+			target.getDefaultGraph().add(triple);
+			enqueueBlankNode(triple.getObject(), pending);
+		}
+	}
+
+	private void copyLabelledGraph(DatasetGraph source, DatasetGraph target, Node node, Deque<Node> pending) {
+		if (!source.containsGraph(node)) {
+			return;
+		}
+		final Iterator<Triple> triples = source.getGraph(node).find();
+		while (triples.hasNext()) {
+			final Triple triple = triples.next();
+			target.add(new Quad(node, triple));
+			enqueueBlankNode(triple.getObject(), pending);
+		}
+	}
+
+	private void enqueueBlankNode(Node node, Deque<Node> pending) {
+		if (node.isBlank()) {
+			pending.add(node);
 		}
 	}
 
 	private Stream<Statement> extractRelations() {
-		return statements(model.listStatements(ANY_RESOURCE, W3ID_TREE_RELATION, ANY_RESOURCE));
+		if (treeNodeIri == null) {
+			return statements(model.listStatements(ANY_RESOURCE, W3ID_TREE_RELATION, ANY_RESOURCE));
+		}
+		return statements(model.listStatements(
+				model.createResource(treeNodeIri), W3ID_TREE_RELATION, ANY_RESOURCE));
 	}
 
 	private Stream<Statement> statements(StmtIterator iterator) {

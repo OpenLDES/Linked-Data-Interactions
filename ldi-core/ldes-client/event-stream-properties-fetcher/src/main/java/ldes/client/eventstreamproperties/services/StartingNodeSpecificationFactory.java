@@ -19,12 +19,21 @@ public class StartingNodeSpecificationFactory {
 	}
 
 	public static StartingNodeSpecification fromDataset(Dataset dataset, String requestUrl) {
+		return fromDataset(dataset, requestUrl, requestUrl);
+	}
+
+	/**
+	 * @param currentPageUrl the URL the response was served from, after redirects
+	 * @param discoveryUrl   the URL that was originally requested
+	 */
+	public static StartingNodeSpecification fromDataset(
+			Dataset dataset, String currentPageUrl, String discoveryUrl) {
 		final Model model = dataset.getDefaultModel();
 		if (TreeNodeSpecification.isTreeNode(model)) {
 			return new TreeNodeSpecification(model);
 		}
 		if (ViewSpecification.isViewSpecificationCandidate(model)) {
-			return new ViewSpecification(dataset, requestUrl);
+			return new ViewSpecification(dataset, currentPageUrl, discoveryUrl);
 		}
 		throw new IllegalStateException("The provided starting node must contain either a dcterms:isPartOf property or the ldes:versionOfPath and ldes:timestampPath properties");
 	}

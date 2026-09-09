@@ -138,6 +138,39 @@ rm -f -- "${adapter_java}.bak"
 grep -q 'member.getDataset(), Lang.NQUADS' "${adapter_java}" ||
   die "the latest suite adapter is incompatible with the OpenLDES dataset API"
 
+# The suite adapter does not yet forward the empty-retention signal. The client
+# decides which named policies are undescribed; the adapter only reports it.
+sed -i.bak \
+  's|"retentionPolicies", properties.getRetentionPolicies(),|"retentionPolicies", properties.getRetentionPolicies(),\n                "emptyRetentionPolicies", properties.getEmptyRetentionPolicies(),|' \
+  "${adapter_java}"
+rm -f -- "${adapter_java}.bak"
+
+grep -q 'properties.getEmptyRetentionPolicies()' "${adapter_java}" ||
+  die "could not add the empty-retention context signal to the OpenLDES adapter"
+
+# A synchronization run is a boundary the adapter defines, not the client, so
+# the adapter timestamps the run it just finished. `membersEmitted` beside it is
+# counted by the adapter for the same reason.
+sed -i.bak \
+  's|event(runId, "statistics", "membersEmitted", emitted)|event(runId, "statistics", "membersEmitted", emitted, "lastRun", java.time.Instant.now().toString())|g' \
+  "${adapter_java}"
+rm -f -- "${adapter_java}.bak"
+
+grep -q '"lastRun", java.time.Instant.now().toString()' "${adapter_java}" ||
+  die "could not add the last-run statistic to the OpenLDES adapter"
+
+# The suite adapter builds the ordered supplier without the tree node record
+# repository, so ordered runs cannot reuse cache validators or skip nodes an
+# earlier run already read. The client does the deciding; the adapter only has
+# to hand it the same repository the unordered supplier gets.
+sed -i.bak \
+  's|^\( *\)repositories.memberIdRepository(),$|\1repositories.memberIdRepository(),\n\1repositories.treeNodeRecordRepository(),|' \
+  "${adapter_java}"
+rm -f -- "${adapter_java}.bak"
+
+grep -q 'repositories.treeNodeRecordRepository()' "${adapter_java}" ||
+  die "could not give the OpenLDES adapter's ordered supplier its tree node repository"
+
 ADAPTER_JAVA="${adapter_java}" node <<'NODE'
 const fs = require("node:fs");
 
@@ -147,15 +180,22 @@ let source = fs.readFileSync(adapterJava, "utf8");
 const contextFetch = `        EventStreamProperties properties = new EventStreamPropertiesFetcher(requestExecutor)
                 .fetchEventStreamProperties(new PropertiesRequest(input.path("entrypoint").asText(), Lang.TURTLE));`;
 const contextFetchWithCache = `        Path contextCachePath = Path.of(input.path("stateDirectory").asText()).resolve("openldes-context.json");
-        if (!"ordered".equals(input.path("mode").asText()) && Files.exists(contextCachePath)) {
+        if (Files.exists(contextCachePath)) {
             @SuppressWarnings("unchecked")
             Map<String, Object> context = JSON.readValue(Files.readString(contextCachePath), Map.class);
             context.put("runId", runId);
             emit(protocol, context);
+            org.apache.jena.query.Dataset contextDataset = org.apache.jena.query.DatasetFactory.create();
+            org.apache.jena.riot.RDFDataMgr.read(
+                    contextDataset,
+                    new java.io.ByteArrayInputStream(((String) context.getOrDefault("dataset", ""))
+                            .getBytes(java.nio.charset.StandardCharsets.UTF_8)),
+                    org.apache.jena.riot.Lang.NQUADS);
             return EventStreamProperties.builder((String) context.get("eventStream"))
                     .rootNode((String) context.get("rootNode"))
                     .versionOfPath((String) context.get("versionOfPath"))
                     .timestampPath((String) context.get("timestampPath"))
+                    .contextDataset(contextDataset)
                     .build();
         }
 
@@ -164,9 +204,7 @@ const contextFetchWithCache = `        Path contextCachePath = Path.of(input.pat
 
 const contextEmit = `        emit(protocol, context);
         return properties;`;
-const contextEmitWithCache = `        if (!"ordered".equals(input.path("mode").asText())) {
-            Files.writeString(contextCachePath, JSON.writeValueAsString(context));
-        }
+const contextEmitWithCache = `        Files.writeString(contextCachePath, JSON.writeValueAsString(context));
         emit(protocol, context);
         return properties;`;
 const beginTraversal = `            requestExecutor.beginTraversal();`;
