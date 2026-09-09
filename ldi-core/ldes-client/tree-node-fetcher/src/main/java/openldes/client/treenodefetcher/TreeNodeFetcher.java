@@ -10,17 +10,14 @@ import ldes.client.treenodefetcher.domain.valueobjects.TreeNodeRequest;
 import ldes.client.treenodefetcher.domain.valueobjects.TreeNodeResponse;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
-import org.apache.jena.atlas.web.ContentType;
 import org.apache.jena.graph.Node;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFLanguages;
-import org.apache.jena.riot.RDFParser;
-import org.apache.jena.riot.RiotException;
 import org.apache.jena.riot.system.StreamRDFBase;
 import org.apache.jena.sparql.core.Quad;
 
-import java.io.ByteArrayInputStream;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -93,12 +90,13 @@ public class TreeNodeFetcher {
 	private TreeNodeResponse createOkResponse(TreeNodeRequest treeNodeRequest, Response response) {
 		final byte[] responseBody = response.getBody().orElseThrow();
 		final String contentType = response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null);
+		final Dataset dataset = RdfResponseParser.parseDataset(
+				responseBody,
+				contentType,
+				treeNodeRequest.getTreeNodeUrl(),
+				treeNodeRequest.getLang());
 		final ModelResponse modelResponse = new ModelResponse(
-				RdfResponseParser.parseDataset(
-						responseBody,
-							contentType,
-							treeNodeRequest.getTreeNodeUrl(),
-							treeNodeRequest.getLang()),
+				dataset,
 				timestampExtractor,
 				treeNodeRequest.getTreeNodeUrl());
 		final MutabilityStatus mutabilityStatus = getMutabilityStatus(response, modelResponse);
@@ -111,7 +109,9 @@ public class TreeNodeFetcher {
 				relations.isEmpty() ? modelResponse.getRelations() : relations,
 				modelResponse.getMembers(),
 				mutabilityStatus,
-				getEtag(response));
+				getEtag(response),
+				dataset,
+				treeNodeRequest.getTreeNodeUrl());
 	}
 
 	private static TreeNodeResponse createNotModifiedResponse(Response response) {
@@ -136,32 +136,27 @@ public class TreeNodeFetcher {
 	}
 
 	private static List<String> extractRelationsInDocumentOrder(byte[] responseBody, String contentType, String baseIri, Lang fallbackLang) {
-		final RelationOrderCollector collector = new RelationOrderCollector();
-		RDFParser.source(new ByteArrayInputStream(responseBody))
-				.lang(responseLang(contentType, fallbackLang))
-				.base(baseIri)
-				.parse(collector);
+		final RelationOrderCollector collector = new RelationOrderCollector(baseIri);
+		RdfResponseParser.parser(responseBody, contentType, baseIri, fallbackLang).parse(collector);
 		return collector.getRelations();
 	}
 
-	private static Lang responseLang(String contentType, Lang fallbackLang) {
-		if (contentType == null || contentType.isBlank()) {
-			if (fallbackLang == null) {
-				throw new RiotException("The RDF response has no Content-Type and no fallback language was configured");
-			}
-			return fallbackLang;
-		}
-
-		final Lang contentTypeLang = RDFLanguages.contentTypeToLang(ContentType.create(contentType));
-		if (contentTypeLang == null) {
-			throw new RiotException("Unsupported RDF response Content-Type: " + contentType);
-		}
-		return contentTypeLang;
-	}
-
+	/**
+	 * Collects the relation targets of one tree node in document order.
+	 * <p>
+	 * Only relations of the tree node that was requested are collected, so
+	 * relations that another resource in the same response declares are not
+	 * traversed. A single relation may name more than one target, and every
+	 * named target is collected.
+	 */
 	private static class RelationOrderCollector extends StreamRDFBase {
+		private final Node treeNode;
 		private final List<Node> relationNodes = new ArrayList<>();
-		private final Map<Node, String> treeNodesByRelation = new HashMap<>();
+		private final Map<Node, List<String>> treeNodesByRelation = new HashMap<>();
+
+		private RelationOrderCollector(String treeNodeIri) {
+			this.treeNode = NodeFactory.createURI(treeNodeIri);
+		}
 
 		@Override
 		public void triple(Triple triple) {
@@ -174,22 +169,32 @@ public class TreeNodeFetcher {
 		}
 
 		private void process(Triple triple) {
-			if (W3ID_TREE_RELATION.asNode().equals(triple.getPredicate())) {
+			if (W3ID_TREE_RELATION.asNode().equals(triple.getPredicate())
+					&& treeNode.equals(triple.getSubject())) {
 				relationNodes.add(triple.getObject());
 			}
 			if (W3ID_TREE_NODE.asNode().equals(triple.getPredicate()) && triple.getObject().isURI()) {
-				treeNodesByRelation.put(triple.getSubject(), triple.getObject().getURI());
+				treeNodesByRelation
+						.computeIfAbsent(triple.getSubject(), relation -> new ArrayList<>())
+						.add(triple.getObject().getURI());
 			}
 		}
 
 		private List<String> getRelations() {
 			return relationNodes.stream()
-					.map(relationNode -> relationNode.isURI()
-							? relationNode.getURI()
-							: treeNodesByRelation.get(relationNode))
-					.filter(relation -> relation != null)
+					.flatMap(relationNode -> targetsOf(relationNode).stream())
 					.distinct()
 					.toList();
+		}
+
+		private List<String> targetsOf(Node relationNode) {
+			final List<String> targets = treeNodesByRelation.get(relationNode);
+			if (targets != null) {
+				return targets;
+			}
+			// A relation that names no tree:node but is itself an IRI is read as
+			// naming that IRI, which is how earlier client versions behaved.
+			return relationNode.isURI() ? List.of(relationNode.getURI()) : List.of();
 		}
 	}
 

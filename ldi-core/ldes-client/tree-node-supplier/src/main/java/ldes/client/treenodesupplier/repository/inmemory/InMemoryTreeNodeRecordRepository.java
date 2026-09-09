@@ -41,6 +41,22 @@ public class InMemoryTreeNodeRecordRepository implements TreeNodeRecordRepositor
 	}
 
 	@Override
+	public Optional<TreeNodeRecord> findById(String treeNodeId) {
+		final TreeNodeRecord wanted = new TreeNodeRecord(treeNodeId);
+		return records().filter(wanted::equals).findFirst();
+	}
+
+	@Override
+	public List<TreeNodeRecord> findAll() {
+		return records().toList();
+	}
+
+	private Stream<TreeNodeRecord> records() {
+		return Stream.of(notVisited, mutableAndActive, almostImmutable, immutable)
+				.flatMap(Collection::stream);
+	}
+
+	@Override
 	public boolean containsTreeNodeRecords() {
 		return Stream.of(notVisited, mutableAndActive, immutable)
 				.anyMatch(treeNodeRecords -> !treeNodeRecords.isEmpty());

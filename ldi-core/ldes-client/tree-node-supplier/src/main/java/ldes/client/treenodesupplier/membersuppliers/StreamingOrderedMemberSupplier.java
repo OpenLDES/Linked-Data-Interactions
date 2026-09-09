@@ -1,20 +1,22 @@
 package ldes.client.treenodesupplier.membersuppliers;
 
+import ldes.client.treenodefetcher.TreeNodeFetcher;
 import ldes.client.treenodefetcher.domain.entities.TreeMember;
-import ldes.client.treenodefetcher.domain.valueobjects.ModelResponse;
-import ldes.client.treenodefetcher.domain.valueobjects.TreeNodeRequest;
+import ldes.client.treenodefetcher.domain.valueobjects.TreeNodeResponse;
+import ldes.client.treenodesupplier.domain.entities.TreeNodeRecord;
 import ldes.client.treenodesupplier.domain.valueobject.EndOfLdesException;
 import ldes.client.treenodesupplier.domain.valueobject.LdesMetaData;
 import ldes.client.treenodesupplier.domain.valueobject.SuppliedMember;
+import ldes.client.treenodesupplier.domain.valueobject.TreeNodeStatus;
 import ldes.client.treenodesupplier.repository.MemberIdRepository;
-import org.apache.http.HttpHeaders;
-import org.apache.http.HttpStatus;
+import ldes.client.treenodesupplier.repository.TreeNodeRecordRepository;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
+import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.vocabulary.RDF;
 import org.openldes.ldi.rdf.parser.RdfResponseParser;
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
@@ -54,14 +56,47 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 	private static final String TREE_LESS_THAN_OR_EQUAL_TO = TREE + "LessThanOrEqualToRelation";
 
 	private final LdesMetaData metadata;
-	private final RequestExecutor responseReuseOwner;
-	private final RequestExecutor requestExecutor;
+	private final TreeNodeFetcher treeNodeFetcher;
 	private final MemberIdRepository memberIdRepository;
+	private final TreeNodeRecordRepository treeNodeRecordRepository;
 	private final boolean keepState;
 	private final MemberOrdering ordering;
 	private final PriorityQueue<FrontierNode> frontier = new PriorityQueue<>();
 	private final PriorityQueue<MemberOrdering.OrderedMember> members = new PriorityQueue<>();
 	private final Set<String> visitedNodes = new HashSet<>();
+
+	/**
+	 * Compatibility entry point that adds the tree node record repository to the
+	 * flat ordering arguments, so a caller which has not moved to
+	 * {@link OrderingConfiguration} can still resume from persisted node state.
+	 */
+	@SuppressWarnings("java:S107")
+	public StreamingOrderedMemberSupplier(
+			LdesMetaData metadata,
+			RequestExecutor requestExecutor,
+			MemberIdRepository memberIdRepository,
+			TreeNodeRecordRepository treeNodeRecordRepository,
+			boolean keepState,
+			String rootNode,
+			Optional<RDFNode> timestampPath,
+			Optional<RDFNode> sequencePath,
+			Optional<RDFNode> transactionPath,
+			Optional<RDFNode> transactionFinalizedPath,
+			Optional<RDFNode> transactionFinalizedObject) {
+		this(
+				metadata,
+				requestExecutor,
+				memberIdRepository,
+				treeNodeRecordRepository,
+				keepState,
+				new OrderingConfiguration(
+						rootNode,
+						timestampPath,
+						sequencePath,
+						transactionPath,
+						transactionFinalizedPath,
+						transactionFinalizedObject));
+	}
 
 	/**
 	 * Compatibility entry point for adapters compiled against the original API.
@@ -99,10 +134,31 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 			MemberIdRepository memberIdRepository,
 			boolean keepState,
 			OrderingConfiguration ordering) {
+		this(metadata, requestExecutor, memberIdRepository, null, keepState, ordering);
+	}
+
+	/**
+	 * @param treeNodeRecordRepository keeps the cache validator and processed
+	 *                                 state of each tree node, so a later
+	 *                                 synchronization run revalidates a mutable
+	 *                                 node instead of refetching it and skips an
+	 *                                 immutable one entirely. May be
+	 *                                 <code>null</code>, in which case every run
+	 *                                 refetches every node it reaches.
+	 */
+	public StreamingOrderedMemberSupplier(
+			LdesMetaData metadata,
+			RequestExecutor requestExecutor,
+			MemberIdRepository memberIdRepository,
+			TreeNodeRecordRepository treeNodeRecordRepository,
+			boolean keepState,
+			OrderingConfiguration ordering) {
 		this.metadata = metadata;
-		this.responseReuseOwner = requestExecutor;
-		this.requestExecutor = RequestExecutorDecorator.withDefaultRetryPolicy(requestExecutor);
+		this.treeNodeFetcher = new TreeNodeFetcher(
+				new ResponseReusingRequestExecutor(requestExecutor),
+				new TimestampFromCurrentTimeExtractor());
 		this.memberIdRepository = memberIdRepository;
+		this.treeNodeRecordRepository = treeNodeRecordRepository;
 		this.keepState = keepState;
 		this.ordering = new MemberOrdering(
 				ordering.timestampPath(),
@@ -116,7 +172,18 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 
 	@Override
 	public void init() {
-		// Frontier is initialized in the constructor.
+		if (treeNodeRecordRepository == null) {
+			return;
+		}
+		// A previous run persisted every node it discovered. Reopening the ones
+		// it did not finish restores the frontier without having to refetch the
+		// nodes that led to them. Their bounds are not persisted, so they are
+		// reopened as unbounded, which only makes emission more conservative.
+		treeNodeRecordRepository.findAll().stream()
+				.filter(record -> record.getTreeNodeStatus()
+						!= TreeNodeStatus.IMMUTABLE_WITHOUT_UNPROCESSED_MEMBERS)
+				.forEach(record -> frontier.add(
+						new FrontierNode(record.getTreeNodeUrl(), FrontierBound.unboundedBound())));
 	}
 
 	@Override
@@ -159,47 +226,82 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 			return;
 		}
 
-		final FetchResult result = fetch(node.url(), List.of());
-		for (TreeMember member : result.members()) {
-			if (memberIdRepository.addMemberIdIfNotExists(member.getMemberId())) {
-				final SuppliedMember suppliedMember = new SuppliedMember(member.getMemberId(), member.getDataset());
-				members.add(ordering.order(suppliedMember));
-			}
+		final TreeNodeRecord record = record(node.url());
+		if (record.getTreeNodeStatus() == TreeNodeStatus.IMMUTABLE_WITHOUT_UNPROCESSED_MEMBERS) {
+			// Fully read already and it cannot change, so there is nothing to
+			// request. Its relation targets were reopened by init.
+			return;
 		}
-		extractRelationBounds(result.dataset(), result.url()).forEach((url, bound) -> {
+
+		final TreeNodeResponse response = treeNodeFetcher
+				.fetchTreeNode(metadata.createRequest(node.url(), record.getEtag()));
+		bufferMembers(response);
+		final String effectiveUrl = response.getEffectiveUrl().orElse(node.url());
+		extractRelationBounds(response.getDataset(), effectiveUrl).forEach((url, bound) -> {
 			if (!visitedNodes.contains(url)) {
 				frontier.add(new FrontierNode(url, bound));
 			}
+			persistDiscoveredNode(url);
 		});
+		persistProcessedNode(record, response);
 	}
 
-	private FetchResult fetch(String url, List<String> redirectHistory) {
-		final TreeNodeRequest request = metadata.createRequest(url);
-		final Request httpRequest = request.createRequest();
-		final Response response = SingleUseResponseRegistry.consume(responseReuseOwner, httpRequest)
-				.orElseGet(() -> requestExecutor.execute(httpRequest));
-		if (response.isRedirect()) {
-			final String location = response.getRedirectLocation()
-					.orElseThrow(() -> new IllegalStateException("No Location header in redirect."));
-			if (redirectHistory.contains(location) || url.equals(location)) {
-				throw new IllegalStateException("Infinite redirect loop.");
+	private void bufferMembers(TreeNodeResponse response) {
+		for (TreeMember member : response.getMembers()) {
+			if (memberIdRepository.addMemberIdIfNotExists(member.getMemberId())) {
+				final SuppliedMember suppliedMember =
+						new SuppliedMember(member.getMemberId(), member.getDataset());
+				members.add(ordering.order(suppliedMember));
 			}
-			final List<String> updatedHistory = new ArrayList<>(redirectHistory);
-			updatedHistory.add(url);
-			return fetch(location, updatedHistory);
 		}
-		if (response.hasStatus(List.of(HttpStatus.SC_GONE)) || response.isNotModified()) {
-			return new FetchResult(url, org.apache.jena.query.DatasetFactory.create(), List.of());
+	}
+
+	private TreeNodeRecord record(String url) {
+		if (treeNodeRecordRepository == null) {
+			return new TreeNodeRecord(url);
 		}
-		if (!response.isOk()) {
-			throw new UnsupportedOperationException("Cannot handle response " + response.getHttpStatus() + " of TreeNodeRequest " + request);
+		return treeNodeRecordRepository.findById(url).orElseGet(() -> new TreeNodeRecord(url));
+	}
+
+	private void persistDiscoveredNode(String url) {
+		if (treeNodeRecordRepository != null && !treeNodeRecordRepository.existsById(url)) {
+			treeNodeRecordRepository.saveTreeNodeRecord(new TreeNodeRecord(url));
+		}
+	}
+
+	private void persistProcessedNode(TreeNodeRecord record, TreeNodeResponse response) {
+		if (treeNodeRecordRepository == null) {
+			return;
+		}
+		record.updateStatus(response.getMutabilityStatus());
+		response.getEtag().ifPresent(record::updateEtag);
+		if (!response.getMutabilityStatus().isMutable()) {
+			// Ordered traversal takes every member of a node in one pass, so an
+			// immutable node has nothing left to offer once it has been read.
+			record.markImmutableWithoutUnprocessedMembers();
+		}
+		treeNodeRecordRepository.saveTreeNodeRecord(record);
+		treeNodeRecordRepository.resetContext();
+	}
+
+	/**
+	 * Lets the tree node fetcher consume a response that discovery already
+	 * fetched, so starting a traversal does not repeat the root request.
+	 */
+	private static final class ResponseReusingRequestExecutor implements RequestExecutor {
+		private final RequestExecutor responseReuseOwner;
+		private final RequestExecutor requestExecutor;
+
+		private ResponseReusingRequestExecutor(RequestExecutor requestExecutor) {
+			this.responseReuseOwner = requestExecutor;
+			this.requestExecutor = RequestExecutorDecorator.withDefaultRetryPolicy(requestExecutor);
 		}
 
-		final byte[] body = response.getBody().orElseThrow();
-		final String contentType = response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null);
-		final Dataset dataset = RdfResponseParser.parseDataset(body, contentType, url, metadata.getLang());
-		final ModelResponse modelResponse = new ModelResponse(dataset, new TimestampFromCurrentTimeExtractor(), url);
-		return new FetchResult(url, dataset, modelResponse.getMembers());
+		@Override
+		public Response execute(Request request) {
+			return SingleUseResponseRegistry.consume(responseReuseOwner, request)
+					.orElseGet(() -> requestExecutor.execute(request));
+		}
 	}
 
 	private Map<String, FrontierBound> extractRelationBounds(Dataset dataset, String currentUrl) {
@@ -213,12 +315,18 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 				.map(RDFNode::asResource)
 				.toList();
 		for (Resource relation : relationResources) {
-			final Resource target = Optional.ofNullable(relation.getPropertyResourceValue(TREE_NODE))
+			// One relation may name several targets; each of them inherits the
+			// bounds of that relation.
+			relation.listProperties(TREE_NODE)
+					.toList()
+					.stream()
+					.map(Statement::getObject)
 					.filter(RDFNode::isURIResource)
-					.orElse(null);
-			if (target != null) {
-				relationsByTarget.computeIfAbsent(target.getURI(), ignored -> new ArrayList<>()).add(relation);
-			}
+					.map(target -> target.asResource().getURI())
+					.distinct()
+					.forEach(target -> relationsByTarget
+							.computeIfAbsent(target, ignored -> new ArrayList<>())
+							.add(relation));
 		}
 
 		final Map<String, FrontierBound> bounds = new HashMap<>();
@@ -260,9 +368,6 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 			return FrontierBound.unboundedBound();
 		}
 		return FrontierBound.unboundedBound();
-	}
-
-	private record FetchResult(String url, Dataset dataset, List<TreeMember> members) {
 	}
 
 	public record OrderingConfiguration(

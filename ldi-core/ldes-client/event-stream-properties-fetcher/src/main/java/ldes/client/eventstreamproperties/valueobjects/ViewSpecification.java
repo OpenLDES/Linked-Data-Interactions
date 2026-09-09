@@ -41,7 +41,8 @@ public class ViewSpecification implements StartingNodeSpecification {
 
 	private final Model model;
 	private final Dataset dataset;
-	private final String requestUrl;
+	private final String currentPageUrl;
+	private final String discoveryUrl;
 
 	public ViewSpecification(Model model) {
 		this(DatasetFactory.create(model));
@@ -52,9 +53,23 @@ public class ViewSpecification implements StartingNodeSpecification {
 	}
 
 	public ViewSpecification(Dataset dataset, String requestUrl) {
+		this(dataset, requestUrl, requestUrl);
+	}
+
+	/**
+	 * @param currentPageUrl the URL the response was actually served from, after
+	 *                       any redirect. A view that names this page describes
+	 *                       the page being read and takes precedence.
+	 * @param discoveryUrl   the URL that was originally supplied. It is only
+	 *                       consulted when no view names the current page, so
+	 *                       metadata about a superseded IRI cannot redirect
+	 *                       discovery to another stream.
+	 */
+	public ViewSpecification(Dataset dataset, String currentPageUrl, String discoveryUrl) {
 		this.dataset = dataset;
 		this.model = dataset.getDefaultModel();
-		this.requestUrl = requestUrl;
+		this.currentPageUrl = currentPageUrl;
+		this.discoveryUrl = discoveryUrl;
 	}
 
 	@Override
@@ -62,8 +77,9 @@ public class ViewSpecification implements StartingNodeSpecification {
 		final Resource subject = extractEventStream().orElseThrow();
 		final String eventStreamUri = requireUri(subject, "event stream");
 		final String rootNode = extractRootNode(subject)
-				.orElseGet(() -> requestUrl == null ? eventStreamUri : requestUrl);
+				.orElseGet(() -> currentPageUrl == null ? eventStreamUri : currentPageUrl);
 		final List<String> viewDescriptions = resources(rootNode, TREE_VIEW_DESCRIPTION);
+		final List<String> retentionPolicies = retentionPolicies(rootNode);
 		return EventStreamProperties.builder(eventStreamUri)
 				.rootNode(rootNode)
 				.versionOfPath(resourceUri(subject, LDES_VERSION_OF_PATH).orElse(null))
@@ -77,7 +93,8 @@ public class ViewSpecification implements StartingNodeSpecification {
 				.pollingInterval(integerValue(subject, LDES_POLLING_INTERVAL).orElse(null))
 				.shaclShapeUris(resources(subject, TREE_SHAPE))
 				.viewDescriptions(viewDescriptions)
-				.retentionPolicies(retentionPolicies(rootNode, viewDescriptions))
+				.retentionPolicies(retentionPolicies)
+				.emptyRetentionPolicies(emptyRetentionPolicies(retentionPolicies))
 				.contextDataset(dataset)
 				.build();
 	}
@@ -99,12 +116,26 @@ public class ViewSpecification implements StartingNodeSpecification {
 
 	private Optional<Resource> extractEventStream() {
 		final List<Resource> candidates = eventStreamCandidates(model);
-		final List<Resource> matchingCandidates = candidates.stream()
-				.filter(this::containsMatchingView)
+		return selectSingle(narrowToDescribingView(candidates), "discoverable event stream");
+	}
+
+	private List<Resource> narrowToDescribingView(List<Resource> candidates) {
+		for (String url : describingUrls()) {
+			final List<Resource> matching = candidates.stream()
+					.filter(candidate -> containsMatchingView(candidate, url))
+					.toList();
+			if (!matching.isEmpty()) {
+				return matching;
+			}
+		}
+		return candidates;
+	}
+
+	private List<String> describingUrls() {
+		return Stream.of(currentPageUrl, discoveryUrl)
+				.filter(Objects::nonNull)
+				.distinct()
 				.toList();
-		return selectSingle(
-				matchingCandidates.isEmpty() ? candidates : matchingCandidates,
-				"discoverable event stream");
 	}
 
 	private static List<Resource> eventStreamCandidates(Model model) {
@@ -126,8 +157,9 @@ public class ViewSpecification implements StartingNodeSpecification {
 		return candidates.stream().findFirst();
 	}
 
-	private boolean containsMatchingView(Resource candidate) {
-		return resources(candidate, TREE_VIEW).stream().anyMatch(this::matchesRequestUrl);
+	private boolean containsMatchingView(Resource candidate, String url) {
+		return resources(candidate, TREE_VIEW).stream()
+				.anyMatch(viewUrl -> matchesUrl(viewUrl, url));
 	}
 
 	private Optional<String> extractRootNode(Resource eventStream) {
@@ -136,23 +168,30 @@ public class ViewSpecification implements StartingNodeSpecification {
 			return viewTargets.stream().findFirst();
 		}
 
-		final List<String> matchingViews = viewTargets.stream()
-				.filter(this::matchesRequestUrl)
-				.toList();
-		if (matchingViews.size() != 1) {
-			throw new IllegalStateException(
-					"Expected exactly one tree:view target matching the entrypoint, found " + matchingViews.size());
+		for (String url : describingUrls()) {
+			final List<String> matchingViews = viewTargets.stream()
+					.filter(viewUrl -> matchesUrl(viewUrl, url))
+					.toList();
+			if (matchingViews.size() == 1) {
+				return Optional.of(matchingViews.getFirst());
+			}
+			if (matchingViews.size() > 1) {
+				throw new IllegalStateException(
+						"Expected exactly one tree:view target matching " + url
+								+ ", found " + matchingViews.size());
+			}
 		}
-		return Optional.of(matchingViews.getFirst());
+		throw new IllegalStateException(
+				"Expected exactly one tree:view target matching the entrypoint, found 0");
 	}
 
-	private boolean matchesRequestUrl(String viewUrl) {
-		if (requestUrl == null) {
+	private boolean matchesUrl(String viewUrl, String candidateUrl) {
+		if (candidateUrl == null) {
 			return false;
 		}
 
 		try {
-			final URI request = URI.create(requestUrl).normalize();
+			final URI request = URI.create(candidateUrl).normalize();
 			final URI view = URI.create(viewUrl).normalize();
 			if (!Objects.equals(request.getScheme(), view.getScheme())
 					|| !Objects.equals(request.getAuthority(), view.getAuthority())) {
@@ -163,7 +202,7 @@ public class ViewSpecification implements StartingNodeSpecification {
 			return Objects.equals(requestPath, viewPath)
 					|| requestPath.startsWith(viewPath.endsWith("/") ? viewPath : viewPath + "/");
 		} catch (IllegalArgumentException ignored) {
-			return requestUrl.equals(viewUrl);
+			return candidateUrl.equals(viewUrl);
 		}
 	}
 
@@ -245,13 +284,45 @@ public class ViewSpecification implements StartingNodeSpecification {
 		return resources(model.createResource(subject), property);
 	}
 
-	private List<String> retentionPolicies(String rootNode, List<String> viewDescriptions) {
+	/**
+	 * Collects the retention policies of a tree node, both the ones it links
+	 * directly and the ones its view descriptions link. A view description is
+	 * often a blank node with nested structure, so the view descriptions are
+	 * traversed as RDF nodes rather than through the IRI-only list that is
+	 * reported to consumers.
+	 */
+	private List<String> retentionPolicies(String rootNode) {
+		if (rootNode == null) {
+			return List.of();
+		}
+		final Resource node = model.createResource(rootNode);
 		return Stream.concat(
-						resources(rootNode, LDES_RETENTION_POLICY).stream(),
-						viewDescriptions.stream()
+						resources(node, LDES_RETENTION_POLICY).stream(),
+						viewDescriptionNodes(node).stream()
 								.flatMap(viewDescription -> resources(viewDescription, LDES_RETENTION_POLICY).stream()))
 				.distinct()
 				.sorted()
+				.toList();
+	}
+
+	private List<Resource> viewDescriptionNodes(Resource node) {
+		return model.listObjectsOfProperty(node, TREE_VIEW_DESCRIPTION)
+				.toList()
+				.stream()
+				.filter(RDFNode::isResource)
+				.map(RDFNode::asResource)
+				.distinct()
+				.toList();
+	}
+
+	/**
+	 * @return the retention policies that this page names but does not describe.
+	 * A consumer must assume that such a view retains no members, so the
+	 * distinction is reported instead of only the policy IRI.
+	 */
+	private List<String> emptyRetentionPolicies(List<String> retentionPolicies) {
+		return retentionPolicies.stream()
+				.filter(policy -> !model.contains(model.createResource(policy), null, (RDFNode) null))
 				.toList();
 	}
 }

@@ -1,9 +1,11 @@
 package org.openldes.ldi.rdf;
 
+import org.apache.jena.graph.Graph;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.sparql.core.DatasetGraph;
 
 import java.util.Objects;
 
@@ -45,10 +47,18 @@ public final class DatasetHolder {
 		return currentModel;
 	}
 
+	/**
+	 * Merges every graph of the dataset into one model. Graphs labelled by a
+	 * blank node are included, which the IRI-only {@code Dataset#listNames}
+	 * listing would skip.
+	 */
 	public static Model flatten(Dataset dataset) {
-		final Model flattenedModel = ModelFactory.createDefaultModel()
-				.add(dataset.getDefaultModel());
-		dataset.listNames().forEachRemaining(name -> flattenedModel.add(dataset.getNamedModel(name)));
+		final Model flattenedModel = ModelFactory.createDefaultModel();
+		final Graph target = flattenedModel.getGraph();
+		final DatasetGraph source = dataset.asDatasetGraph();
+		source.getDefaultGraph().find().forEachRemaining(target::add);
+		source.listGraphNodes().forEachRemaining(
+				name -> source.getGraph(name).find().forEachRemaining(target::add));
 		return flattenedModel;
 	}
 }

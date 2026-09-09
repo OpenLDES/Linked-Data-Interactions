@@ -42,7 +42,8 @@ public class EventStreamPropertiesFetcher {
 							response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null),
 							request.url(),
 							request.lang()))
-					.map(dataset -> StartingNodeSpecificationFactory.fromDataset(dataset, discoveryUrl))
+					.map(dataset -> StartingNodeSpecificationFactory.fromDataset(
+							dataset, request.url(), discoveryUrl))
 					.map(StartingNodeSpecification::extractEventStreamProperties)
 					.orElseThrow(() -> new IllegalStateException("Event stream properties response has no body."));
 			return new PropertiesResponse(properties, request.url(), response);
