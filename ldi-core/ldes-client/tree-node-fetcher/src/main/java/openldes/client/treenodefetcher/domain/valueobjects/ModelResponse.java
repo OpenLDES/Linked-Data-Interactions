@@ -54,7 +54,18 @@ public class ModelResponse {
 	 * included, and a relation naming several targets contributes all of them.
 	 */
 	public List<String> getRelations() {
-		return extractRelations()
+		final List<String> relations = relationTargets(extractRelations()).toList();
+		if (!relations.isEmpty()) {
+			return relations;
+		}
+		return selectedTreeViews().stream()
+				.flatMap(treeView -> relationTargets(extractRelations(treeView)))
+				.distinct()
+				.toList();
+	}
+
+	private Stream<String> relationTargets(Stream<Statement> relationStatements) {
+		return relationStatements
 				.map(Statement::getObject)
 				.filter(RDFNode::isResource)
 				.map(RDFNode::asResource)
@@ -62,8 +73,7 @@ public class ModelResponse {
 				.map(Statement::getObject)
 				.filter(RDFNode::isURIResource)
 				.map(node -> node.asResource().getURI())
-				.distinct()
-				.toList();
+				.distinct();
 	}
 
 	public List<TreeMember> getMembers() {
@@ -173,8 +183,20 @@ public class ModelResponse {
 		if (treeNodeIri == null) {
 			return statements(model.listStatements(ANY_RESOURCE, W3ID_TREE_RELATION, ANY_RESOURCE));
 		}
-		return statements(model.listStatements(
-				model.createResource(treeNodeIri), W3ID_TREE_RELATION, ANY_RESOURCE));
+		return extractRelations(model.createResource(treeNodeIri));
+	}
+
+	private Stream<Statement> extractRelations(Resource treeNode) {
+		return statements(model.listStatements(treeNode, W3ID_TREE_RELATION, ANY_RESOURCE));
+	}
+
+	private List<Resource> selectedTreeViews() {
+		return statements(model.listStatements(ANY_RESOURCE, W3ID_TREE_VIEW, ANY_RESOURCE))
+				.map(Statement::getObject)
+				.filter(RDFNode::isURIResource)
+				.map(RDFNode::asResource)
+				.distinct()
+				.toList();
 	}
 
 	private Stream<Statement> statements(StmtIterator iterator) {
