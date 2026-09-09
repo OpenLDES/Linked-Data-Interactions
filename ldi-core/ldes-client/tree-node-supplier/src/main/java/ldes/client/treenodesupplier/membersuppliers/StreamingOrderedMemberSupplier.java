@@ -18,7 +18,6 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.vocabulary.RDF;
-import org.openldes.ldi.rdf.parser.RdfResponseParser;
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
 import org.openldes.ldi.requestexecutor.services.RequestExecutorDecorator;
 import org.openldes.ldi.requestexecutor.services.SingleUseResponseRegistry;
@@ -180,10 +179,10 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 		// nodes that led to them. Their bounds are not persisted, so they are
 		// reopened as unbounded, which only makes emission more conservative.
 		treeNodeRecordRepository.findAll().stream()
-				.filter(record -> record.getTreeNodeStatus()
+				.filter(treeNodeRecord -> treeNodeRecord.getTreeNodeStatus()
 						!= TreeNodeStatus.IMMUTABLE_WITHOUT_UNPROCESSED_MEMBERS)
-				.forEach(record -> frontier.add(
-						new FrontierNode(record.getTreeNodeUrl(), FrontierBound.unboundedBound())));
+				.forEach(treeNodeRecord -> frontier.add(
+						new FrontierNode(treeNodeRecord.getTreeNodeUrl(), FrontierBound.unboundedBound())));
 	}
 
 	@Override
@@ -226,15 +225,15 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 			return;
 		}
 
-		final TreeNodeRecord record = record(node.url());
-		if (record.getTreeNodeStatus() == TreeNodeStatus.IMMUTABLE_WITHOUT_UNPROCESSED_MEMBERS) {
+		final TreeNodeRecord treeNodeRecord = findTreeNodeRecord(node.url());
+		if (treeNodeRecord.getTreeNodeStatus() == TreeNodeStatus.IMMUTABLE_WITHOUT_UNPROCESSED_MEMBERS) {
 			// Fully read already and it cannot change, so there is nothing to
 			// request. Its relation targets were reopened by init.
 			return;
 		}
 
 		final TreeNodeResponse response = treeNodeFetcher
-				.fetchTreeNode(metadata.createRequest(node.url(), record.getEtag()));
+				.fetchTreeNode(metadata.createRequest(node.url(), treeNodeRecord.getEtag()));
 		bufferMembers(response);
 		final String effectiveUrl = response.getEffectiveUrl().orElse(node.url());
 		extractRelationBounds(response.getDataset(), effectiveUrl).forEach((url, bound) -> {
@@ -243,7 +242,7 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 			}
 			persistDiscoveredNode(url);
 		});
-		persistProcessedNode(record, response);
+		persistProcessedNode(treeNodeRecord, response);
 	}
 
 	private void bufferMembers(TreeNodeResponse response) {
@@ -256,7 +255,7 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 		}
 	}
 
-	private TreeNodeRecord record(String url) {
+	private TreeNodeRecord findTreeNodeRecord(String url) {
 		if (treeNodeRecordRepository == null) {
 			return new TreeNodeRecord(url);
 		}
@@ -269,18 +268,18 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 		}
 	}
 
-	private void persistProcessedNode(TreeNodeRecord record, TreeNodeResponse response) {
+	private void persistProcessedNode(TreeNodeRecord treeNodeRecord, TreeNodeResponse response) {
 		if (treeNodeRecordRepository == null) {
 			return;
 		}
-		record.updateStatus(response.getMutabilityStatus());
-		response.getEtag().ifPresent(record::updateEtag);
+		treeNodeRecord.updateStatus(response.getMutabilityStatus());
+		response.getEtag().ifPresent(treeNodeRecord::updateEtag);
 		if (!response.getMutabilityStatus().isMutable()) {
 			// Ordered traversal takes every member of a node in one pass, so an
 			// immutable node has nothing left to offer once it has been read.
-			record.markImmutableWithoutUnprocessedMembers();
+			treeNodeRecord.markImmutableWithoutUnprocessedMembers();
 		}
-		treeNodeRecordRepository.saveTreeNodeRecord(record);
+		treeNodeRecordRepository.saveTreeNodeRecord(treeNodeRecord);
 		treeNodeRecordRepository.resetContext();
 	}
 

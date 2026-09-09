@@ -21,7 +21,15 @@ public class SqlTreeNodeRepository implements TreeNodeRecordRepository {
 	public void saveTreeNodeRecord(TreeNodeRecord treeNodeRecord) {
 		TreeNodeRecordEntity memberRecordEntity = TreeNodeRecordEntityMapper.fromTreeNodeRecord(treeNodeRecord);
 		entityManager.getTransaction().begin();
-		entityManager.merge(memberRecordEntity);
+		TreeNodeRecordEntity storedTreeNodeRecord = entityManager.find(TreeNodeRecordEntity.class, treeNodeRecord.getTreeNodeUrl());
+		if (storedTreeNodeRecord == null) {
+			entityManager.persist(memberRecordEntity);
+		} else {
+			storedTreeNodeRecord.setTreeNodeStatus(memberRecordEntity.getTreeNodeStatus());
+			storedTreeNodeRecord.setEarliestNextVisit(memberRecordEntity.getEarliestNextVisit());
+			storedTreeNodeRecord.setMembers(memberRecordEntity.getMembers());
+			storedTreeNodeRecord.setEtag(memberRecordEntity.getEtag());
+		}
 		entityManager.getTransaction().commit();
 	}
 
