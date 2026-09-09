@@ -63,7 +63,7 @@ class LdesClientProcessorTest {
 	}
 
 	@BeforeEach
-	public void init() {
+	void init() {
 		testRunner = TestRunners.newTestRunner(LdesClientProcessor.class);
 	}
 

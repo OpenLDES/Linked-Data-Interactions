@@ -219,16 +219,18 @@ public class TreeNodeProcessor {
 						final Optional<String> resolvedStartingNode = SingleUseResponseRegistry.consumeResolvedUrl(responseReuseOwner, startingNode);
 						if (resolvedStartingNode.isPresent()) {
 							requestExecutor.alias(resolvedStartingNode.get(), resolvedStartingNode.get());
-							return new StartingTreeNode(resolvedStartingNode.get(), ldesMetaData.getLang());
+							StartingTreeNode start = new StartingTreeNode(resolvedStartingNode.get(), ldesMetaData.getLang());
+							explicitStartingNodes.add(start.getStartingNodeUrl());
+							return start;
 						}
 						final StartingTreeNode start = new StartingTreeNodeSupplier(requestExecutor)
 								.getStart(startingNode, ldesMetaData.getLang());
 						if (startingNode.equals(start.getStartingNodeUrl())) {
 							requestExecutor.alias(startingNode, start.getStartingNodeUrl());
 						}
+						explicitStartingNodes.add(start.getStartingNodeUrl());
 						return start;
 					})
-					.peek(start -> explicitStartingNodes.add(start.getStartingNodeUrl()))
 					.map(start -> new TreeNodeRecord(start.getStartingNodeUrl()))
 					.forEach(treeNodeRecordRepository::saveTreeNodeRecord);
 		} finally {
