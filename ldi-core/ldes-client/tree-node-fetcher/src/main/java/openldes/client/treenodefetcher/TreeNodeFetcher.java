@@ -27,6 +27,7 @@ import java.util.Map;
 
 import static ldes.client.treenodefetcher.domain.valueobjects.Constants.W3ID_TREE_NODE;
 import static ldes.client.treenodefetcher.domain.valueobjects.Constants.W3ID_TREE_RELATION;
+import static ldes.client.treenodefetcher.domain.valueobjects.Constants.W3ID_TREE_VIEW;
 
 /**
  * Responsible for fetching the next TreeNodes
@@ -151,7 +152,8 @@ public class TreeNodeFetcher {
 	 */
 	private static class RelationOrderCollector extends StreamRDFBase {
 		private final Node treeNode;
-		private final List<Node> relationNodes = new ArrayList<>();
+		private final List<Node> viewNodes = new ArrayList<>();
+		private final Map<Node, List<Node>> relationNodesByTreeNode = new HashMap<>();
 		private final Map<Node, List<String>> treeNodesByRelation = new HashMap<>();
 
 		private RelationOrderCollector(String treeNodeIri) {
@@ -169,9 +171,13 @@ public class TreeNodeFetcher {
 		}
 
 		private void process(Triple triple) {
-			if (W3ID_TREE_RELATION.asNode().equals(triple.getPredicate())
-					&& treeNode.equals(triple.getSubject())) {
-				relationNodes.add(triple.getObject());
+			if (W3ID_TREE_VIEW.asNode().equals(triple.getPredicate()) && triple.getObject().isURI()) {
+				viewNodes.add(triple.getObject());
+			}
+			if (W3ID_TREE_RELATION.asNode().equals(triple.getPredicate())) {
+				relationNodesByTreeNode
+						.computeIfAbsent(triple.getSubject(), subject -> new ArrayList<>())
+						.add(triple.getObject());
 			}
 			if (W3ID_TREE_NODE.asNode().equals(triple.getPredicate()) && triple.getObject().isURI()) {
 				treeNodesByRelation
@@ -181,7 +187,18 @@ public class TreeNodeFetcher {
 		}
 
 		private List<String> getRelations() {
-			return relationNodes.stream()
+			final List<String> relations = relationsOf(treeNode);
+			if (!relations.isEmpty()) {
+				return relations;
+			}
+			return viewNodes.stream()
+					.flatMap(viewNode -> relationsOf(viewNode).stream())
+					.distinct()
+					.toList();
+		}
+
+		private List<String> relationsOf(Node treeNode) {
+			return relationNodesByTreeNode.getOrDefault(treeNode, List.of()).stream()
 					.flatMap(relationNode -> targetsOf(relationNode).stream())
 					.distinct()
 					.toList();

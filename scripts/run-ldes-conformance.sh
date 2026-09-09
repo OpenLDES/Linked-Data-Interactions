@@ -8,6 +8,7 @@ invocation_dir="$(pwd -P)"
 report_dir="${repository_root}/target/ldes-conformance-report"
 tests_path="tests"
 fail_on_non_pass=true
+suite_ref="${LDES_CONFORMANCE_SUITE_REF:-f1f2dc60a70e3dca97fdd7e264f60a7174196bf2}"
 work_dir=""
 runner_pid=""
 
@@ -24,10 +25,13 @@ Options:
   --no-fail           Report conformance gaps without making the command fail.
   --report-dir PATH   Write JSON, EARL, and Markdown evidence to PATH.
   --tests PATH        Run a suite test directory (default: tests).
+  --suite-ref REF     Run the conformance suite at REF. Defaults to the latest
+                      revision known to match this adapter patch set.
   -h, --help          Show this help.
 
 By default, any applicable non-passing test makes the command fail.
-The suite is cloned from its main branch on every invocation.
+The suite is cloned at a pinned revision unless --suite-ref or
+LDES_CONFORMANCE_SUITE_REF is set.
 EOF
 }
 
@@ -64,6 +68,11 @@ while (($#)); do
     --tests)
       (($# >= 2)) || die "--tests requires a path"
       tests_path="$2"
+      shift 2
+      ;;
+    --suite-ref)
+      (($# >= 2)) || die "--suite-ref requires a ref"
+      suite_ref="$2"
       shift 2
       ;;
     -h|--help)
@@ -107,10 +116,12 @@ trap cleanup EXIT
 suite_dir="${work_dir}/suite"
 maven_repository="${LDES_CONFORMANCE_MAVEN_REPO:-${HOME}/.m2/repository}"
 
-printf 'Fetching the latest conformance suite from main...\n'
-git clone --quiet --depth 1 --branch main \
-  https://github.com/pietercolpaert/ldes-client-conformance-test-suite.git \
-  "${suite_dir}"
+printf 'Fetching the conformance suite at %s...\n' "${suite_ref}"
+git init --quiet "${suite_dir}"
+git -C "${suite_dir}" remote add origin \
+  https://github.com/pietercolpaert/ldes-client-conformance-test-suite.git
+git -C "${suite_dir}" fetch --quiet --depth 1 origin "${suite_ref}"
+git -C "${suite_dir}" checkout --quiet FETCH_HEAD
 
 (
   cd "${suite_dir}"
@@ -131,7 +142,8 @@ sed -i.bak \
 rm -f -- "${adapter_module}.bak"
 
 sed -i.bak \
-  's/RDFDataMgr.write(dataset, member.getModel(), Lang.NTRIPLES);/RDFDataMgr.write(dataset, member.getDataset(), Lang.NQUADS);/' \
+  -e 's/RDFDataMgr.write(dataset, member.getModel(), Lang.NTRIPLES);/RDFDataMgr.write(dataset, member.getDataset(), Lang.NQUADS);/' \
+  -e 's/RDFDataMgr.write(dataset, member.getModel(), Lang.NQUADS);/RDFDataMgr.write(dataset, member.getDataset(), Lang.NQUADS);/' \
   "${adapter_java}"
 rm -f -- "${adapter_java}.bak"
 
