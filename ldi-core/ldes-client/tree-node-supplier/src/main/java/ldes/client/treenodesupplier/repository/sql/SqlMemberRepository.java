@@ -47,7 +47,9 @@ public class SqlMemberRepository implements MemberRepository {
 
 	@Override
 	public void destroyState() {
-		entityManager.clear();
+		if (entityManager.isOpen()) {
+			entityManager.clear();
+		}
 	}
 
 	private int executeStatelessQuery(StatelessQueryExecutor queryExecutor) {
