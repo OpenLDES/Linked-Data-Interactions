@@ -49,6 +49,8 @@ class EventStreamPropertiesFetcherTest {
 				"/observations-redirected",
 				"/observations/by-page",
 				"/observations/by-page?pageNumber=1",
+				"/items",
+				"/items/grouped?group=1",
 				"/overview",
 				"/root")
 				.stream()
@@ -149,6 +151,32 @@ class EventStreamPropertiesFetcherTest {
 		verify(getRequestedFor(urlEqualTo("/observations")));
 		assertEventStreamProperties(properties);
 		assertThat(properties.getRootNode()).isEqualTo(BASE_URL + "/observations/by-page");
+	}
+
+	@Test
+	void givenFragmentAndEventStreamWithoutView_whenFetchProperties_thenReuseOriginalEntrypoint() {
+		stubFor(get("/items/grouped?group=1").willReturn(ok().withBody("""
+				@prefix tree: <https://w3id.org/tree#> .
+				@prefix dcterms: <http://purl.org/dc/terms/> .
+				<> a tree:Node ;
+					dcterms:isPartOf <http://localhost:12121/items> .
+				""")));
+		stubFor(get("/items").willReturn(ok().withBody("""
+				@prefix ldes: <https://w3id.org/ldes#> .
+				@prefix dcterms: <http://purl.org/dc/terms/> .
+				@prefix prov: <http://www.w3.org/ns/prov#> .
+				<> a ldes:EventStream ;
+					ldes:versionOfPath dcterms:isVersionOf ;
+					ldes:timestampPath prov:generatedAtTime .
+				""")));
+
+		final EventStreamProperties properties = fetch("/items/grouped?group=1");
+
+		assertThat(properties.getRootNode()).isEqualTo(BASE_URL + "/items");
+		assertThat(SingleUseResponseRegistry.consumeResolvedUrl(requestExecutor, BASE_URL + "/items/grouped?group=1"))
+				.contains(BASE_URL + "/items/grouped?group=1");
+		assertThat(SingleUseResponseRegistry.consume(requestExecutor, BASE_URL + "/items/grouped?group=1"))
+				.isPresent();
 	}
 
 	@Test

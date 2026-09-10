@@ -22,13 +22,14 @@ public class EventStreamPropertiesFetcher {
 
 	public EventStreamProperties fetchEventStreamProperties(PropertiesRequest request) {
 		PropertiesResponse propertiesResponse = executePropertiesRequest(request, request.url());
+		PropertiesResponse entrypointResponse = propertiesResponse;
 		if (propertiesResponse.properties().needsEventStreamFollowUp()) {
 			propertiesResponse = executePropertiesRequest(
 					request.withUrl(propertiesResponse.properties().getUri()),
 					request.url());
 		}
 
-		prepareTraversalResponse(request.url(), propertiesResponse);
+		prepareTraversalResponse(request.url(), entrypointResponse, propertiesResponse);
 		return propertiesResponse.properties();
 	}
 
@@ -59,9 +60,19 @@ public class EventStreamPropertiesFetcher {
 				"Cannot handle response " + response.getHttpStatus() + " of EventStreamPropertiesRequest " + request);
 	}
 
-	private void prepareTraversalResponse(String entrypoint, PropertiesResponse propertiesResponse) {
+	private void prepareTraversalResponse(String entrypoint, PropertiesResponse entrypointResponse, PropertiesResponse propertiesResponse) {
 		final String rootNode = propertiesResponse.properties().getRootNode();
-		SingleUseResponseRegistry.resolve(responseReuseOwner, entrypoint, rootNode);
+		final boolean followedEntrypointForMetadata = !entrypointResponse.responseUrl().equals(propertiesResponse.responseUrl());
+		SingleUseResponseRegistry.resolve(responseReuseOwner, entrypoint,
+				followedEntrypointForMetadata && rootNode != null && rootNode.equals(propertiesResponse.responseUrl())
+						? entrypointResponse.responseUrl()
+						: rootNode);
+		if (followedEntrypointForMetadata) {
+			SingleUseResponseRegistry.capture(
+					responseReuseOwner,
+					entrypointResponse.responseUrl(),
+					entrypointResponse.response());
+		}
 		if (rootNode != null && rootNode.equals(propertiesResponse.responseUrl())) {
 			SingleUseResponseRegistry.capture(
 					responseReuseOwner,
