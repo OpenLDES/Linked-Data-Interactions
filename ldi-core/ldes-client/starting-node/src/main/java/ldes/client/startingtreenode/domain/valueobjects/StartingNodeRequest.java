@@ -2,6 +2,8 @@ package ldes.client.startingtreenode.domain.valueobjects;
 
 import org.apache.jena.riot.Lang;
 
+import static org.openldes.ldi.rdf.parser.RdfResponseParser.ACCEPT_HEADER;
+
 /**
  * Contains the endpoint to connect to the server. This can be a collection,
  * view or subset.
@@ -18,8 +20,8 @@ public class StartingNodeRequest {
 		this.redirectHistory = redirectHistory;
 	}
 
-	public String contentType() {
-		return lang == null ? "" : lang.getContentType().getContentTypeStr();
+	public String acceptHeader() {
+		return ACCEPT_HEADER;
 	}
 
 	public String url() {

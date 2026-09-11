@@ -1,6 +1,7 @@
 package org.openldes.ldio.requestexecutor;
 
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.requestexecutor.executor.RetryableRequestExecutor;
 import org.openldes.ldi.requestexecutor.executor.ratelimiter.RateLimiterConfig;
 import org.openldes.ldi.requestexecutor.executor.retry.RetryConfig;
 import org.openldes.ldi.requestexecutor.services.RequestExecutorDecorator;
@@ -43,7 +44,9 @@ public class LdioRequestExecutorSupplier {
         final RequestExecutor baseRequestExecutor = getBaseRequestExecutor(props);
         Retry retry = getRetry(props);
         RateLimiter rateLimiter = getRateLimiter(props);
-        return RequestExecutorDecorator.decorate(baseRequestExecutor).with(retry).with(rateLimiter).get();
+        final RequestExecutor configured = RequestExecutorDecorator.decorate(baseRequestExecutor).with(retry).with(rateLimiter).get();
+        // An explicitly disabled retry policy is also a configured policy.
+        return retry == null ? (RetryableRequestExecutor) configured::execute : configured;
     }
 
     private RateLimiter getRateLimiter(ComponentProperties props) {
@@ -64,7 +67,7 @@ public class LdioRequestExecutorSupplier {
     private Retry getRetry(ComponentProperties props) {
         boolean retriesEnabled = props.getOptionalBoolean(RETRIES_ENABLED).orElse(Boolean.TRUE);
         if (retriesEnabled) {
-            int maxRetries = props.getOptionalInteger(MAX_RETRIES).orElse(5);
+            int maxRetries = props.getOptionalInteger(MAX_RETRIES).orElse(RetryConfig.DEFAULT_MAX_ATTEMPTS);
             List<Integer> statusesToRetry = props.getOptionalProperty(STATUSES_TO_RETRY)
                     .map(csv -> Stream.of(csv.split(",")).map(String::trim).map(Integer::parseInt).toList())
                     .orElse(new ArrayList<>());

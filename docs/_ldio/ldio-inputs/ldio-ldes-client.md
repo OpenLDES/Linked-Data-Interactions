@@ -94,6 +94,7 @@ CPU ([source](https://www.sqlite.org/faq.html#q19)).
 | _source-format_       | The 'Content-Type' that should be requested to the server                                                                                   | No       | text/turtle | application/n-quads                       | Any type supported by [Apache Jena](https://jena.apache.org/documentation/io/rdf-input.html#determining-the-rdf-syntax) |
 | _state_               | 'memory', 'sqlite' or 'postgres' to indicate how the state should be persisted                                                              | No       | memory      | sqlite                                    | 'memory', 'sqlite' or 'postgres'                                                                                        |
 | _keep-state_          | Indicates if the state should be persisted on shutdown (n/a for in memory states)                                                           | No       | false       | false                                     | true or false                                                                                                           |
+| _ordered_             | Indicates whether the client should emit members in LDES ordered traversal mode using the configured `ldes:timestampPath` and/or `ldes:sequencePath` | No       | false       | true                                      | true or false                                                                                                           |
 | _enable-exactly-once_ | Indicates whether a member must be sent exactly once or at least once                                                                       | No       | true        | true                                      | true or false                                                                                                           |
 
 {: .note }
@@ -104,6 +105,12 @@ formats are faster to parse.
 {: .note }
 Setting the keep-state property to `true` makes it so that the state can not be deleted through the pipeline-management
 api
+
+{: .note }
+When `ordered` is set to `true`, the client uses LDES ordered traversal metadata from the event stream context. TREE
+relation bounds are used to emit members incrementally when the frontier proves that no earlier member can still be
+discovered. The separate `enable-exactly-once` wrapper is not applied in ordered mode because ordered traversal already
+uses member-id state internally to avoid duplicate emissions.
 
 ### Version materialisation properties
 

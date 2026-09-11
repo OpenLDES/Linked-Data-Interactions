@@ -9,6 +9,8 @@ import org.apache.jena.riot.Lang;
 
 import java.util.List;
 
+import static org.openldes.ldi.rdf.parser.RdfResponseParser.ACCEPT_HEADER;
+
 /**
  * Contains the endpoint to connect to the server. This can be only be a fragment
  */
@@ -24,7 +26,7 @@ public class TreeNodeRequest {
 
 	public Request createRequest() {
 		RequestHeaders requestHeaders = new RequestHeaders(
-				List.of(new RequestHeader(HttpHeaders.ACCEPT, lang.getHeaderString())));
+				List.of(new RequestHeader(HttpHeaders.ACCEPT, ACCEPT_HEADER)));
 
 		return new GetRequest(treeNodeUrl, requestHeaders);
 	}

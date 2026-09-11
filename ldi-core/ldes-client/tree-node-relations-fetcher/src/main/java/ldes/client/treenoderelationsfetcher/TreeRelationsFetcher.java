@@ -2,14 +2,13 @@ package ldes.client.treenoderelationsfetcher;
 
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
 import org.openldes.ldi.requestexecutor.valueobjects.Response;
+import org.openldes.ldi.rdf.parser.RdfResponseParser;
 import ldes.client.treenoderelationsfetcher.domain.valueobjects.ModelResponse;
 import ldes.client.treenoderelationsfetcher.domain.valueobjects.TreeNodeRequest;
 import ldes.client.treenoderelationsfetcher.domain.valueobjects.TreeRelation;
+import org.apache.http.HttpHeaders;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.riot.RDFParser;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.util.List;
 
 public class TreeRelationsFetcher {
@@ -42,8 +41,11 @@ public class TreeRelationsFetcher {
 	}
 
 	private List<TreeRelation> createOkResponse(TreeNodeRequest treeNodeRequest, Response response) {
-		final InputStream responseBody = response.getBody().map(ByteArrayInputStream::new).orElseThrow();
-		final Model model = RDFParser.source(responseBody).forceLang(treeNodeRequest.getLang()).base(treeNodeRequest.getTreeNodeUrl()).toModel();
+		final Model model = RdfResponseParser.parseModel(
+				response.getBody().orElseThrow(),
+				response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null),
+				treeNodeRequest.getTreeNodeUrl(),
+				treeNodeRequest.getLang());
 		return new ModelResponse(model).getTreeRelations();
 	}
 

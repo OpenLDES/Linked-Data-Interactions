@@ -7,6 +7,7 @@ import org.apache.jena.riot.Lang;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.openldes.ldi.rdf.parser.RdfResponseParser.ACCEPT_HEADER;
 
 class TreeNodeRequestTest {
 	private static final String URL = "http://example.com";
@@ -33,7 +34,7 @@ class TreeNodeRequestTest {
 
 		assertThat(result.getRequestHeaders())
 				.containsExactlyInAnyOrder(
-						new RequestHeader("Accept", LANG.getHeaderString()),
+						new RequestHeader("Accept", ACCEPT_HEADER),
 						new RequestHeader("Accept-Encoding", "gzip")
 				);
 	}
@@ -47,7 +48,7 @@ class TreeNodeRequestTest {
 
 		assertThat(result.getRequestHeaders())
 				.containsExactlyInAnyOrder(
-						new RequestHeader("Accept", LANG.getHeaderString()),
+						new RequestHeader("Accept", ACCEPT_HEADER),
 						new RequestHeader("If-None-Match", etag),
 						new RequestHeader("Accept-Encoding", "gzip")
 				);

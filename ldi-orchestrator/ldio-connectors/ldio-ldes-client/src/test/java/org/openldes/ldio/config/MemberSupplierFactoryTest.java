@@ -10,6 +10,7 @@ import ldes.client.treenodesupplier.filters.LatestStateFilter;
 import ldes.client.treenodesupplier.membersuppliers.FilteredMemberSupplier;
 import ldes.client.treenodesupplier.membersuppliers.MemberSupplier;
 import ldes.client.treenodesupplier.membersuppliers.MemberSupplierImpl;
+import ldes.client.treenodesupplier.membersuppliers.StreamingOrderedMemberSupplier;
 import ldes.client.treenodesupplier.membersuppliers.VersionMaterialisedMemberSupplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,6 +67,34 @@ class MemberSupplierFactoryTest {
 		MemberSupplier memberSupplier = new MemberSupplierFactory(ldioLdesClientProperties, fetcher, null, statusConsumer).getMemberSupplier();
 
 		assertThat(memberSupplier).isInstanceOf(MemberSupplierImpl.class);
+	}
+
+	@Test
+	void when_OrderedTraversalIsEnabled_then_StreamingOrderedMemberSupplierIsReturned() {
+		defaultInputConfig.put(ORDERED, "true");
+		final var componentProperties = new ComponentProperties("pipelineName", "cName", defaultInputConfig);
+		ldioLdesClientProperties = LdioLdesClientProperties.fromComponentProperties(componentProperties);
+		when(fetcher.fetchEventStreamProperties(any())).thenReturn(eventStreamProperties);
+
+		MemberSupplier memberSupplier = new MemberSupplierFactory(ldioLdesClientProperties, fetcher, null, statusConsumer).getMemberSupplier();
+
+		assertThat(memberSupplier).isInstanceOf(StreamingOrderedMemberSupplier.class);
+	}
+
+	@Test
+	void when_OrderedTraversalIsEnabledWithVersionMaterialisation_then_VersionMaterialisedStreamingSupplierIsReturned() {
+		defaultInputConfig.put(ORDERED, "true");
+		defaultInputConfig.put(USE_VERSION_MATERIALISATION, "true");
+		defaultInputConfig.put(USE_LATEST_STATE_FILTER, "false");
+		final var componentProperties = new ComponentProperties("pipelineName", "cName", defaultInputConfig);
+		ldioLdesClientProperties = LdioLdesClientProperties.fromComponentProperties(componentProperties);
+		when(fetcher.fetchEventStreamProperties(any())).thenReturn(eventStreamProperties);
+
+		MemberSupplier memberSupplier = new MemberSupplierFactory(ldioLdesClientProperties, fetcher, null, statusConsumer).getMemberSupplier();
+
+		assertThat(memberSupplier)
+				.isInstanceOf(VersionMaterialisedMemberSupplier.class)
+				.extracting("memberSupplier").isInstanceOf(StreamingOrderedMemberSupplier.class);
 	}
 
 	@Test

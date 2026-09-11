@@ -7,6 +7,8 @@ import java.util.List;
 
 public class RetryConfig {
 
+	public static final int DEFAULT_MAX_ATTEMPTS = 8;
+
 	private final int maxAttempts;
 	private final List<Integer> statusesToRetry;
 

@@ -10,11 +10,16 @@ public class TreeNodeRecordEntityMapper {
 
 	public static TreeNodeRecordEntity fromTreeNodeRecord(TreeNodeRecord treeMember) {
 		return new TreeNodeRecordEntity(treeMember.getTreeNodeUrl(), treeMember.getTreeNodeStatus().name(),
-				treeMember.getEarliestNextVisit(), treeMember.getMemberIds());
+				treeMember.getEarliestNextVisit(), treeMember.getMemberIds(), treeMember.getEtag());
 	}
 
 	public static TreeNodeRecord toTreeNode(TreeNodeRecordEntity treeNodeRecordEntity) {
 		TreeNodeStatus treeNodeStatus = TreeNodeStatus.valueOf(treeNodeRecordEntity.getTreeNodeStatus());
-		return new TreeNodeRecord(treeNodeRecordEntity.getTreeNodeUrl(), treeNodeStatus, treeNodeRecordEntity.getEarliestNextVisit(), treeNodeRecordEntity.getMembers());
+		return new TreeNodeRecord(
+				treeNodeRecordEntity.getTreeNodeUrl(),
+				treeNodeStatus,
+				treeNodeRecordEntity.getEarliestNextVisit(),
+				treeNodeRecordEntity.getMembers(),
+				treeNodeRecordEntity.getEtag());
 	}
 }

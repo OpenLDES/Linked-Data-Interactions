@@ -1,55 +1,86 @@
 package ldes.client.eventstreamproperties;
 
-import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
-import org.openldes.ldi.requestexecutor.valueobjects.Response;
 import ldes.client.eventstreamproperties.services.StartingNodeSpecificationFactory;
 import ldes.client.eventstreamproperties.valueobjects.EventStreamProperties;
 import ldes.client.eventstreamproperties.valueobjects.PropertiesRequest;
 import ldes.client.eventstreamproperties.valueobjects.StartingNodeSpecification;
-import org.apache.jena.riot.RDFParser;
-
-import java.io.ByteArrayInputStream;
+import org.apache.http.HttpHeaders;
+import org.openldes.ldi.rdf.parser.RdfResponseParser;
+import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.requestexecutor.services.RequestExecutorDecorator;
+import org.openldes.ldi.requestexecutor.services.SingleUseResponseRegistry;
+import org.openldes.ldi.requestexecutor.valueobjects.Response;
 
 public class EventStreamPropertiesFetcher {
+	private final RequestExecutor responseReuseOwner;
 	private final RequestExecutor requestExecutor;
 
 	public EventStreamPropertiesFetcher(RequestExecutor requestExecutor) {
-		this.requestExecutor = requestExecutor;
+		this.responseReuseOwner = requestExecutor;
+		this.requestExecutor = RequestExecutorDecorator.withDefaultRetryPolicy(requestExecutor);
 	}
 
 	public EventStreamProperties fetchEventStreamProperties(PropertiesRequest request) {
-		final EventStreamProperties eventStreamProperties = executePropertiesRequest(request);
-
-		if(eventStreamProperties.containsRequiredProperties()) {
-			return eventStreamProperties;
+		PropertiesResponse propertiesResponse = executePropertiesRequest(request, request.url());
+		PropertiesResponse entrypointResponse = propertiesResponse;
+		if (propertiesResponse.properties().needsEventStreamFollowUp()) {
+			propertiesResponse = executePropertiesRequest(
+					request.withUrl(propertiesResponse.properties().getUri()),
+					request.url());
 		}
 
-		return executePropertiesRequest(request.withUrl(eventStreamProperties.getUri()));
-
+		prepareTraversalResponse(request.url(), entrypointResponse, propertiesResponse);
+		return propertiesResponse.properties();
 	}
 
-	private EventStreamProperties executePropertiesRequest(PropertiesRequest request) {
+	private PropertiesResponse executePropertiesRequest(PropertiesRequest request, String discoveryUrl) {
 		final Response response = requestExecutor.execute(request.createRequest());
 
-		if(response.isOk()) {
-			return response.getBody()
-					.map(ByteArrayInputStream::new)
-					.map(body -> RDFParser.source(body).lang(request.lang()).toModel())
-					.map(StartingNodeSpecificationFactory::fromModel)
+		if (response.isOk()) {
+			final EventStreamProperties properties = response.getBody()
+					.map(body -> RdfResponseParser.parseDataset(
+							body,
+							response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null),
+							request.url(),
+							request.lang()))
+					.map(dataset -> StartingNodeSpecificationFactory.fromDataset(
+							dataset, request.url(), discoveryUrl))
 					.map(StartingNodeSpecification::extractEventStreamProperties)
-					.orElseThrow();
+					.orElseThrow(() -> new IllegalStateException("Event stream properties response has no body."));
+			return new PropertiesResponse(properties, request.url(), response);
 		}
 
-		if(response.isRedirect()) {
-			return response.getRedirectLocation()
-					.map(request::withUrl)
-					.map(this::executePropertiesRequest)
-					.orElseThrow(() -> new IllegalStateException("No Location Header in redirect."));
+		if (response.isRedirect()) {
+			final String redirectLocation = response.getRedirectLocation()
+					.orElseThrow(() -> new IllegalStateException("No Location header in redirect response."));
+			return executePropertiesRequest(request.withUrl(redirectLocation), discoveryUrl);
 		}
 
 		throw new UnsupportedOperationException(
 				"Cannot handle response " + response.getHttpStatus() + " of EventStreamPropertiesRequest " + request);
 	}
 
+	private void prepareTraversalResponse(String entrypoint, PropertiesResponse entrypointResponse, PropertiesResponse propertiesResponse) {
+		final String rootNode = propertiesResponse.properties().getRootNode();
+		final boolean followedEntrypointForMetadata = !entrypointResponse.responseUrl().equals(propertiesResponse.responseUrl());
+		SingleUseResponseRegistry.resolve(responseReuseOwner, entrypoint,
+				followedEntrypointForMetadata && rootNode != null && rootNode.equals(propertiesResponse.responseUrl())
+						? entrypointResponse.responseUrl()
+						: rootNode);
+		if (followedEntrypointForMetadata) {
+			SingleUseResponseRegistry.capture(
+					responseReuseOwner,
+					entrypointResponse.responseUrl(),
+					entrypointResponse.response());
+		}
+		if (rootNode != null && rootNode.equals(propertiesResponse.responseUrl())) {
+			SingleUseResponseRegistry.capture(
+					responseReuseOwner,
+					propertiesResponse.responseUrl(),
+					propertiesResponse.response());
+		}
+	}
 
+	private record PropertiesResponse(EventStreamProperties properties, String responseUrl, Response response) {
+	}
 }
