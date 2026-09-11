@@ -20,6 +20,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TreeNodeFetcherTest {
 
 	@Test
+	void emptyPageWithoutCacheControlRemainsMutable() {
+		final TreeNodeFetcher fetcher = new TreeNodeFetcher(
+				request -> new Response(request, List.of(new BasicHeader(HttpHeaders.CONTENT_TYPE, "text/turtle")),
+						200, ""), new TimestampFromCurrentTimeExtractor());
+		final TreeNodeResponse response = fetcher.fetchTreeNode(new TreeNodeRequest(
+				"https://example.com/empty", RDFLanguages.TURTLE, null));
+		assertThat(response.getMembers()).isEmpty();
+		assertThat(response.getRelations()).isEmpty();
+		assertThat(response.getMutabilityStatus().isMutable()).isTrue();
+	}
+
+	@Test
 	void should_ReturnEmptyImmutableResponse_when_TreeNodeIsGone() {
 		final TreeNodeFetcher treeNodeFetcher = new TreeNodeFetcher(
 				request -> new Response(

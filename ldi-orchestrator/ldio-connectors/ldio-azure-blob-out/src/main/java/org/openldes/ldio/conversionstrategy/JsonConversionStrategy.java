@@ -6,6 +6,8 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFWriter;
 
+import com.github.jsonldjava.core.JsonLdOptions;
+
 import java.io.IOException;
 
 public class JsonConversionStrategy implements ConversionStrategy {
@@ -14,6 +16,10 @@ public class JsonConversionStrategy implements ConversionStrategy {
 
 	public JsonConversionStrategy(String jsonContextURI) {
 		model2JsonConverter = new Model2JsonConverter(jsonContextURI);
+	}
+
+	JsonConversionStrategy(String jsonContextURI, JsonLdOptions jsonLdOptions) {
+		model2JsonConverter = new Model2JsonConverter(jsonContextURI, jsonLdOptions);
 	}
 
 	@Override

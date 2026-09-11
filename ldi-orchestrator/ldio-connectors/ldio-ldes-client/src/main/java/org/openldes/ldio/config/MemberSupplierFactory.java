@@ -71,6 +71,7 @@ public class MemberSupplierFactory {
 				ldesMetaData,
 				requestExecutor,
 				ldesClientRepositories.memberIdRepository(),
+				ldesClientRepositories.treeNodeRecordRepository(),
 				clientProperties.isKeepStateEnabled(),
 				new OrderingConfiguration(
 						eventStreamProperties.getRootNode(),
