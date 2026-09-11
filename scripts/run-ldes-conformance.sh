@@ -8,7 +8,7 @@ invocation_dir="$(pwd -P)"
 report_dir="${repository_root}/target/ldes-conformance-report"
 tests_path="tests"
 fail_on_non_pass=true
-suite_ref="${LDES_CONFORMANCE_SUITE_REF:-f1f2dc60a70e3dca97fdd7e264f60a7174196bf2}"
+suite_ref="${LDES_CONFORMANCE_SUITE_REF:-main}"
 work_dir=""
 runner_pid=""
 
@@ -25,13 +25,12 @@ Options:
   --no-fail           Report conformance gaps without making the command fail.
   --report-dir PATH   Write JSON, EARL, and Markdown evidence to PATH.
   --tests PATH        Run a suite test directory (default: tests).
-  --suite-ref REF     Run the conformance suite at REF. Defaults to the latest
-                      revision known to match this adapter patch set.
+  --suite-ref REF     Run the conformance suite at REF (default: main).
   -h, --help          Show this help.
 
 By default, any applicable non-passing test makes the command fail.
-The suite is cloned at a pinned revision unless --suite-ref or
-LDES_CONFORMANCE_SUITE_REF is set.
+The suite is fetched from main unless --suite-ref or
+LDES_CONFORMANCE_SUITE_REF is set. Use a commit SHA to reproduce a previous run.
 EOF
 }
 
@@ -122,6 +121,8 @@ git -C "${suite_dir}" remote add origin \
   https://github.com/pietercolpaert/ldes-client-conformance-test-suite.git
 git -C "${suite_dir}" fetch --quiet --depth 1 origin "${suite_ref}"
 git -C "${suite_dir}" checkout --quiet FETCH_HEAD
+suite_revision="$(git -C "${suite_dir}" rev-parse HEAD)"
+printf 'Conformance suite revision: %s\n' "${suite_revision}"
 
 (
   cd "${suite_dir}"
@@ -130,143 +131,14 @@ git -C "${suite_dir}" checkout --quiet FETCH_HEAD
   node dist/cli.js validate --tests "${tests_path}"
 )
 
-# These compatibility edits can be removed once the suite's OpenLDES adapter
-# consumes the dataset API, obtains the tested revision from the environment,
-# and counts a metadata response reused for traversal as an already visited root.
-adapter_module="${suite_dir}/adapters/openldes-ldi/adapter.mjs"
-adapter_java="${suite_dir}/adapters/openldes-ldi/src/main/java/org/openldes/conformance/OpenLdesAdapter.java"
-
-sed -i.bak \
-  's/clientRevision: "[0-9a-f]*"/clientRevision: process.env.LDES_CT_CLIENT_REVISION ?? "unknown"/' \
-  "${adapter_module}"
-rm -f -- "${adapter_module}.bak"
-
-sed -i.bak \
-  -e 's/RDFDataMgr.write(dataset, member.getModel(), Lang.NTRIPLES);/RDFDataMgr.write(dataset, member.getDataset(), Lang.NQUADS);/' \
-  -e 's/RDFDataMgr.write(dataset, member.getModel(), Lang.NQUADS);/RDFDataMgr.write(dataset, member.getDataset(), Lang.NQUADS);/' \
-  "${adapter_java}"
-rm -f -- "${adapter_java}.bak"
-
-grep -q 'member.getDataset(), Lang.NQUADS' "${adapter_java}" ||
-  die "the latest suite adapter is incompatible with the OpenLDES dataset API"
-
-# The suite adapter does not yet forward the empty-retention signal. The client
-# decides which named policies are undescribed; the adapter only reports it.
-sed -i.bak \
-  's|"retentionPolicies", properties.getRetentionPolicies(),|"retentionPolicies", properties.getRetentionPolicies(),\n                "emptyRetentionPolicies", properties.getEmptyRetentionPolicies(),|' \
-  "${adapter_java}"
-rm -f -- "${adapter_java}.bak"
-
-grep -q 'properties.getEmptyRetentionPolicies()' "${adapter_java}" ||
-  die "could not add the empty-retention context signal to the OpenLDES adapter"
-
-# A synchronization run is a boundary the adapter defines, not the client, so
-# the adapter timestamps the run it just finished. `membersEmitted` beside it is
-# counted by the adapter for the same reason.
-sed -i.bak \
-  's|event(runId, "statistics", "membersEmitted", emitted)|event(runId, "statistics", "membersEmitted", emitted, "lastRun", java.time.Instant.now().toString())|g' \
-  "${adapter_java}"
-rm -f -- "${adapter_java}.bak"
-
-grep -q '"lastRun", java.time.Instant.now().toString()' "${adapter_java}" ||
-  die "could not add the last-run statistic to the OpenLDES adapter"
-
-# The suite adapter builds the ordered supplier without the tree node record
-# repository, so ordered runs cannot reuse cache validators or skip nodes an
-# earlier run already read. The client does the deciding; the adapter only has
-# to hand it the same repository the unordered supplier gets.
-sed -i.bak \
-  's|^\( *\)repositories.memberIdRepository(),$|\1repositories.memberIdRepository(),\n\1repositories.treeNodeRecordRepository(),|' \
-  "${adapter_java}"
-rm -f -- "${adapter_java}.bak"
-
-grep -q 'repositories.treeNodeRecordRepository()' "${adapter_java}" ||
-  die "could not give the OpenLDES adapter's ordered supplier its tree node repository"
-
-ADAPTER_JAVA="${adapter_java}" node <<'NODE'
-const fs = require("node:fs");
-
-const adapterJava = process.env.ADAPTER_JAVA;
-let source = fs.readFileSync(adapterJava, "utf8");
-
-const contextFetch = `        EventStreamProperties properties = new EventStreamPropertiesFetcher(requestExecutor)
-                .fetchEventStreamProperties(new PropertiesRequest(input.path("entrypoint").asText(), Lang.TURTLE));`;
-const contextFetchWithCache = `        Path contextCachePath = Path.of(input.path("stateDirectory").asText()).resolve("openldes-context.json");
-        if (Files.exists(contextCachePath)) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> context = JSON.readValue(Files.readString(contextCachePath), Map.class);
-            context.put("runId", runId);
-            emit(protocol, context);
-            org.apache.jena.query.Dataset contextDataset = org.apache.jena.query.DatasetFactory.create();
-            org.apache.jena.riot.RDFDataMgr.read(
-                    contextDataset,
-                    new java.io.ByteArrayInputStream(((String) context.getOrDefault("dataset", ""))
-                            .getBytes(java.nio.charset.StandardCharsets.UTF_8)),
-                    org.apache.jena.riot.Lang.NQUADS);
-            return EventStreamProperties.builder((String) context.get("eventStream"))
-                    .rootNode((String) context.get("rootNode"))
-                    .versionOfPath((String) context.get("versionOfPath"))
-                    .timestampPath((String) context.get("timestampPath"))
-                    .contextDataset(contextDataset)
-                    .build();
-        }
-
-        EventStreamProperties properties = new EventStreamPropertiesFetcher(requestExecutor)
-                .fetchEventStreamProperties(new PropertiesRequest(input.path("entrypoint").asText(), Lang.TURTLE));`;
-
-const contextEmit = `        emit(protocol, context);
-        return properties;`;
-const contextEmitWithCache = `        Files.writeString(contextCachePath, JSON.writeValueAsString(context));
-        emit(protocol, context);
-        return properties;`;
-const beginTraversal = `            requestExecutor.beginTraversal();`;
-const beginTraversalWithRoot = `            requestExecutor.beginTraversal(properties.getRootNode());`;
-const traversalMethod = `        private void beginTraversal() {
-            visited.clear();
-            traversalStarted = true;
-        }`;
-const traversalMethodWithRoot = `        private void beginTraversal(String rootNode) {
-            final boolean rootFetchedDuringSetup = visited.contains(rootNode);
-            visited.clear();
-            if (rootFetchedDuringSetup) {
-                visited.add(rootNode);
-            }
-            traversalStarted = true;
-        }`;
-const traversalExecute = `        public Response execute(Request request) {
-            if (traversalStarted && !visited.add(request.getUrl())) {
-                throw new SynchronizationComplete();
-            }
-            return delegate.execute(request);
-        }`;
-const traversalExecuteWithSetupTracking = `        public Response execute(Request request) {
-            if (!traversalStarted) {
-                visited.add(request.getUrl());
-            } else if (!visited.add(request.getUrl())) {
-                throw new SynchronizationComplete();
-            }
-            return delegate.execute(request);
-        }`;
-
-if (!source.includes(contextFetch)) {
-  throw new Error("Could not find OpenLDES adapter context fetch block to patch");
-}
-if (!source.includes(contextEmit)) {
-  throw new Error("Could not find OpenLDES adapter context emit block to patch");
-}
-if (!source.includes(beginTraversal)
-    || !source.includes(traversalMethod)
-    || !source.includes(traversalExecute)) {
-  throw new Error("Could not find OpenLDES adapter traversal boundary to patch");
-}
-
-source = source.replace(contextFetch, contextFetchWithCache);
-source = source.replace(contextEmit, contextEmitWithCache);
-source = source.replace(beginTraversal, beginTraversalWithRoot);
-source = source.replace(traversalMethod, traversalMethodWithRoot);
-source = source.replace(traversalExecute, traversalExecuteWithSetupTracking);
-fs.writeFileSync(adapterJava, source);
-NODE
+# Keep the adapter with the client API it exercises. The test harness and
+# scenarios still come from the requested upstream suite revision.
+cp -- "${script_dir}/ldes-conformance/OpenLdesAdapter.java" \
+  "${suite_dir}/adapters/openldes-ldi/src/main/java/org/openldes/conformance/OpenLdesAdapter.java"
+cp -- "${script_dir}/ldes-conformance/adapter.mjs" \
+  "${suite_dir}/adapters/openldes-ldi/adapter.mjs"
+cp -- "${script_dir}/ldes-conformance/adapter.json" \
+  "${suite_dir}/adapters/openldes-ldi/adapter.json"
 
 client_revision="$(git -C "${repository_root}" rev-parse HEAD 2>/dev/null || printf 'workspace')"
 if [[ -n "$(git -C "${repository_root}" status --porcelain 2>/dev/null)" ]]; then
@@ -334,6 +206,10 @@ wait "${runner_pid}"
 status=$?
 runner_pid=""
 set -e
+
+# The harness recreates its output directory when starting a run.
+mkdir -p -- "${report_dir}"
+printf '%s\n' "${suite_revision}" > "${report_dir}/suite-revision.txt"
 
 printf '\nConformance evidence: %s\n' "${report_dir}"
 exit "${status}"
