@@ -78,7 +78,6 @@ public class LdioLdesClientProperties {
 		final LdioLdesClientProperties clientProps = new LdioLdesClientProperties(properties);
 		warnWhenVersionMaterialisationIsNotEnabled(clientProps);
 		checkIfBothVersionMaterialisationAndExactlyOnceAreExplicitlyEnabled(clientProps);
-		warnIfExactlyOnceFilterMustBeDisabled(clientProps);
 		return clientProps;
 	}
 
@@ -97,9 +96,4 @@ public class LdioLdesClientProperties {
 		}
 	}
 
-	private static void warnIfExactlyOnceFilterMustBeDisabled(LdioLdesClientProperties clientProps) {
-		if(clientProps.isVersionMaterialisationEnabled() && clientProps.isExactlyOnceEnabled()) {
-			log.warn("The exactly once filter can not be used while version materialisation is active, disabling filter");
-		}
-	}
 }

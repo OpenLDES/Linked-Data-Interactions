@@ -62,6 +62,7 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 	private final MemberOrdering ordering;
 	private final PriorityQueue<FrontierNode> frontier = new PriorityQueue<>();
 	private final PriorityQueue<MemberOrdering.OrderedMember> members = new PriorityQueue<>();
+	private final Map<String, TreeNodeRecord> pendingCheckpoints = new HashMap<>();
 	private final Set<String> visitedNodes = new HashSet<>();
 
 	/**
@@ -166,7 +167,11 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 				ordering.transactionFinalizedPath(),
 				ordering.transactionFinalizedObject());
 		final String rootNode = ordering.rootNode();
-		this.frontier.add(new FrontierNode(rootNode == null ? metadata.getStartingNodeUrl() : rootNode, FrontierBound.unboundedBound()));
+		for (String startingNode : metadata.getStartingNodeUrls()) {
+			final String resolved = startingNode.equals(metadata.getStartingNodeUrl()) && rootNode != null
+					? rootNode : SingleUseResponseRegistry.consumeResolvedUrl(requestExecutor, startingNode).orElse(startingNode);
+			this.frontier.add(new FrontierNode(resolved, FrontierBound.unboundedBound()));
+		}
 	}
 
 	@Override
@@ -188,15 +193,19 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 	@Override
 	public SuppliedMember get() {
 		while (true) {
+			if (members.isEmpty()) {
+				checkpointDrainedNodes();
+			}
 			if (canEmitNextMember()) {
-				return members.poll().member();
+				final SuppliedMember member = members.poll().member();
+				if (memberIdRepository.addMemberIdIfNotExists(member.getId())) {
+					return member;
+				}
+				continue;
 			}
 			if (!frontier.isEmpty()) {
 				processNextFrontierNode();
 				continue;
-			}
-			if (!members.isEmpty()) {
-				return members.poll().member();
 			}
 			throw new EndOfLdesException("No ordered members or frontier nodes left to process.");
 		}
@@ -206,6 +215,9 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 	public void destroyState() {
 		if (!keepState) {
 			memberIdRepository.destroyState();
+			if (treeNodeRecordRepository != null) {
+				treeNodeRecordRepository.destroyState();
+			}
 		}
 	}
 
@@ -247,11 +259,8 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 
 	private void bufferMembers(TreeNodeResponse response) {
 		for (TreeMember member : response.getMembers()) {
-			if (memberIdRepository.addMemberIdIfNotExists(member.getMemberId())) {
-				final SuppliedMember suppliedMember =
-						new SuppliedMember(member.getMemberId(), member.getDataset());
-				members.add(ordering.order(suppliedMember));
-			}
+			final SuppliedMember suppliedMember = new SuppliedMember(member.getMemberId(), member.getDataset());
+			members.add(ordering.order(suppliedMember));
 		}
 	}
 
@@ -272,15 +281,26 @@ public class StreamingOrderedMemberSupplier implements MemberSupplier {
 		if (treeNodeRecordRepository == null) {
 			return;
 		}
+		// Leave the durable record unchanged until all buffered members have
+		// been emitted. On interruption the old validator refetches this page.
+		persistDiscoveredNode(treeNodeRecord.getTreeNodeUrl());
+		treeNodeRecord = new TreeNodeRecord(treeNodeRecord.getTreeNodeUrl(), treeNodeRecord.getTreeNodeStatus(),
+				treeNodeRecord.getEarliestNextVisit(), new ArrayList<>(), treeNodeRecord.getEtag());
 		treeNodeRecord.updateStatus(response.getMutabilityStatus());
 		response.getEtag().ifPresent(treeNodeRecord::updateEtag);
 		if (!response.getMutabilityStatus().isMutable()) {
-			// Ordered traversal takes every member of a node in one pass, so an
-			// immutable node has nothing left to offer once it has been read.
+			// This completion status is only saved once the member buffer drains.
 			treeNodeRecord.markImmutableWithoutUnprocessedMembers();
 		}
-		treeNodeRecordRepository.saveTreeNodeRecord(treeNodeRecord);
-		treeNodeRecordRepository.resetContext();
+		pendingCheckpoints.put(treeNodeRecord.getTreeNodeUrl(), treeNodeRecord);
+	}
+
+	private void checkpointDrainedNodes() {
+		if (treeNodeRecordRepository != null && !pendingCheckpoints.isEmpty()) {
+			pendingCheckpoints.values().forEach(treeNodeRecordRepository::saveTreeNodeRecord);
+			treeNodeRecordRepository.resetContext();
+			pendingCheckpoints.clear();
+		}
 	}
 
 	/**

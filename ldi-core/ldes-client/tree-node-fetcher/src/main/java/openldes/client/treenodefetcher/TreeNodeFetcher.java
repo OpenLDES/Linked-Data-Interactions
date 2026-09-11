@@ -14,7 +14,7 @@ import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
-import org.apache.jena.riot.Lang;
+import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.riot.system.StreamRDFBase;
 import org.apache.jena.sparql.core.Quad;
 
@@ -91,21 +91,16 @@ public class TreeNodeFetcher {
 	private TreeNodeResponse createOkResponse(TreeNodeRequest treeNodeRequest, Response response) {
 		final byte[] responseBody = response.getBody().orElseThrow();
 		final String contentType = response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null);
-		final Dataset dataset = RdfResponseParser.parseDataset(
-				responseBody,
-				contentType,
-				treeNodeRequest.getTreeNodeUrl(),
-				treeNodeRequest.getLang());
+		final Dataset dataset = DatasetFactory.createTxnMem();
+		final RelationOrderCollector collector = new RelationOrderCollector(treeNodeRequest.getTreeNodeUrl(), dataset);
+		RdfResponseParser.parser(responseBody, contentType, treeNodeRequest.getTreeNodeUrl(), treeNodeRequest.getLang())
+				.parse(collector);
 		final ModelResponse modelResponse = new ModelResponse(
 				dataset,
 				timestampExtractor,
 				treeNodeRequest.getTreeNodeUrl());
 		final MutabilityStatus mutabilityStatus = getMutabilityStatus(response, modelResponse);
-		final List<String> relations = extractRelationsInDocumentOrder(
-				responseBody,
-				contentType,
-				treeNodeRequest.getTreeNodeUrl(),
-				treeNodeRequest.getLang());
+		final List<String> relations = collector.getRelations();
 		return new TreeNodeResponse(
 				relations.isEmpty() ? modelResponse.getRelations() : relations,
 				modelResponse.getMembers(),
@@ -129,17 +124,11 @@ public class TreeNodeFetcher {
 		}
 		return response.getFirstHeaderValue(HttpHeaders.CACHE_CONTROL)
 				.map(MutabilityStatus::ofHeader)
-				.orElseGet(() -> getEmptyCacheControlMutabilityStatus(modelResponse));
+				.orElseGet(MutabilityStatus::empty);
 	}
 
 	private static String getEtag(Response response) {
 		return response.getFirstHeaderValue(HttpHeaders.ETAG).orElse(null);
-	}
-
-	private static List<String> extractRelationsInDocumentOrder(byte[] responseBody, String contentType, String baseIri, Lang fallbackLang) {
-		final RelationOrderCollector collector = new RelationOrderCollector(baseIri);
-		RdfResponseParser.parser(responseBody, contentType, baseIri, fallbackLang).parse(collector);
-		return collector.getRelations();
 	}
 
 	/**
@@ -152,21 +141,25 @@ public class TreeNodeFetcher {
 	 */
 	private static class RelationOrderCollector extends StreamRDFBase {
 		private final Node treeNode;
+		private final Dataset dataset;
 		private final List<Node> viewNodes = new ArrayList<>();
 		private final Map<Node, List<Node>> relationNodesByTreeNode = new HashMap<>();
 		private final Map<Node, List<String>> treeNodesByRelation = new HashMap<>();
 
-		private RelationOrderCollector(String treeNodeIri) {
+		private RelationOrderCollector(String treeNodeIri, Dataset dataset) {
+			this.dataset = dataset;
 			this.treeNode = NodeFactory.createURI(treeNodeIri);
 		}
 
 		@Override
 		public void triple(Triple triple) {
+			dataset.asDatasetGraph().add(new Quad(Quad.defaultGraphNodeGenerated, triple));
 			process(triple);
 		}
 
 		@Override
 		public void quad(Quad quad) {
+			dataset.asDatasetGraph().add(quad);
 			process(quad.asTriple());
 		}
 
@@ -221,10 +214,4 @@ public class TreeNodeFetcher {
 				.orElseGet(MutabilityStatus::empty);
 	}
 
-	private static MutabilityStatus getEmptyCacheControlMutabilityStatus(ModelResponse modelResponse) {
-		if (modelResponse.getMembers().isEmpty() && modelResponse.getRelations().isEmpty()) {
-			return new MutabilityStatus(false, LocalDateTime.now(ZoneOffset.UTC));
-		}
-		return MutabilityStatus.empty();
-	}
 }

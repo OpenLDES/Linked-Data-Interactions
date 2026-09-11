@@ -32,6 +32,73 @@ class StreamingOrderedMemberSupplierTest {
 	private static final String LATER = EX + "later";
 
 	@Test
+	void ordersMembersAcrossAllStartingUrls() {
+		final InMemoryRequestExecutor executor = new InMemoryRequestExecutor(Map.of(
+				ROOT, page(ROOT, "two", 2), LATER, page(LATER, "one", 1)));
+		final StreamingOrderedMemberSupplier supplier = new StreamingOrderedMemberSupplier(
+				new LdesMetaData(List.of(ROOT, LATER), Lang.TURTLE), executor,
+				new InMemoryMemberIdRepository(), true,
+				ordering(Optional.empty(), Optional.of(createProperty(EX + "sequence"))));
+		assertThat(supplier.get().getId()).isEqualTo(EX + "one");
+		assertThat(supplier.get().getId()).isEqualTo(EX + "two");
+		assertThat(executor.requestedUrls()).containsExactlyInAnyOrder(ROOT, LATER);
+	}
+
+	@Test
+	void interruptedBufferIsRefetchedAndCompletedImmutableNodesAreSkipped() {
+		final var nodes = new ldes.client.treenodesupplier.repository.inmemory.InMemoryTreeNodeRecordRepository();
+		final var ids = new InMemoryMemberIdRepository();
+		final InMemoryRequestExecutor executor = new InMemoryRequestExecutor(Map.of(ROOT,
+				page(ROOT, "one", 1) + "\n<" + ROOT + "> <https://w3id.org/ldes#immutable> true .\n"
+				+ "<" + EX + "collection> <https://w3id.org/tree#member> <" + EX + "two> .\n"
+				+ "<" + EX + "two> <" + EX + "sequence> 2 ."));
+		final var metadata = new LdesMetaData(List.of(ROOT), Lang.TURTLE);
+		final var config = ordering(Optional.empty(), Optional.of(createProperty(EX + "sequence")));
+		final var first = new StreamingOrderedMemberSupplier(metadata, executor, ids, nodes, true, config);
+		first.init();
+		assertThat(first.get().getId()).isEqualTo(EX + "one");
+		final var resumed = new StreamingOrderedMemberSupplier(metadata, executor, ids, nodes, true, config);
+		resumed.init();
+		assertThat(resumed.get().getId()).isEqualTo(EX + "two");
+		assertThatThrownBy(resumed::get).isInstanceOf(EndOfLdesException.class);
+		final var completed = new StreamingOrderedMemberSupplier(metadata, executor, ids, nodes, true, config);
+		completed.init();
+		assertThatThrownBy(completed::get).isInstanceOf(EndOfLdesException.class);
+		assertThat(executor.requestedUrls()).containsExactly(ROOT, ROOT);
+	}
+
+	@Test
+	void resumesMutableNodeWithPersistedValidator() {
+		final var nodes = new ldes.client.treenodesupplier.repository.inmemory.InMemoryTreeNodeRecordRepository();
+		final var ids = new InMemoryMemberIdRepository();
+		final List<Request> requests = new ArrayList<>();
+		final RequestExecutor executor = request -> {
+			requests.add(request);
+			return requests.size() == 1
+					? new Response(request, List.of(new BasicHeader(HttpHeaders.CONTENT_TYPE, "text/turtle"),
+							new BasicHeader(HttpHeaders.ETAG, "v1")), 200, page(ROOT, "one", 1))
+					: new Response(request, List.of(), 304, (byte[]) null);
+		};
+		final var metadata = new LdesMetaData(List.of(ROOT), Lang.TURTLE);
+		final var config = ordering(Optional.empty(), Optional.of(createProperty(EX + "sequence")));
+		final var first = new StreamingOrderedMemberSupplier(metadata, executor, ids, nodes, true, config);
+		first.init();
+		assertThat(first.get().getId()).isEqualTo(EX + "one");
+		assertThatThrownBy(first::get).isInstanceOf(EndOfLdesException.class);
+		final var resumed = new StreamingOrderedMemberSupplier(metadata, executor, ids, nodes, true, config);
+		resumed.init();
+		assertThatThrownBy(resumed::get).isInstanceOf(EndOfLdesException.class);
+		assertThat(requests).hasSize(2);
+		assertThat(requests.get(1)).usingRecursiveComparison().isEqualTo(metadata.createRequest(ROOT, "v1").createRequest());
+	}
+
+	private static String page(String url, String id, int sequence) {
+		return "<" + EX + "collection> <https://w3id.org/tree#view> <" + url + "> ; "
+				+ "<https://w3id.org/tree#member> <" + EX + id + "> .\n"
+				+ "<" + EX + id + "> <" + EX + "sequence> " + sequence + " .";
+	}
+
+	@Test
 	void reusesTheRootResponseCapturedDuringEventStreamDiscovery() {
 		final String rootBody = """
 				@prefix tree: <https://w3id.org/tree#> .

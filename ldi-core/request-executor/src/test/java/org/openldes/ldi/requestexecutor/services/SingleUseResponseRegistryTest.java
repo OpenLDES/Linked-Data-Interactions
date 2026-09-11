@@ -10,6 +10,17 @@ import static org.mockito.Mockito.when;
 
 class SingleUseResponseRegistryTest {
 	@Test
+	void abandonedCapturesAreBoundedForALiveOwner() {
+		final RequestExecutor owner = mock(RequestExecutor.class);
+		final Response response = successfulResponse();
+		for (int i = 0; i < 129; i++) {
+			SingleUseResponseRegistry.capture(owner, "url" + i, response);
+		}
+		assertThat(SingleUseResponseRegistry.consume(owner, "url0")).isEmpty();
+		assertThat(SingleUseResponseRegistry.consume(owner, "url128")).contains(response);
+	}
+
+	@Test
 	void capturedResponseCanOnlyBeConsumedOnce() {
 		final RequestExecutor owner = mock(RequestExecutor.class);
 		final Response response = successfulResponse();
