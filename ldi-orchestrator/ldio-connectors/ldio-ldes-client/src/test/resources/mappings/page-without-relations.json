@@ -20,17 +20,17 @@
           ],
           "@id": "http://localhost:10101/page-without-relations",
           "@type": "Node",
-          "viewOf": "https://private-api.gipod.beta-vlaanderen.be/api/v1/ldes/mobility-hindrances",
+          "viewOf": "http://localhost:10101/page-without-relations",
           "collectionInfo": {
-            "@id": "https://private-api.gipod.beta-vlaanderen.be/api/v1/ldes/mobility-hindrances",
+            "@id": "http://localhost:10101/page-without-relations",
             "@type": "EventStream",
-            "shape": "https://private-api.gipod.beta-vlaanderen.be/api/v1/ldes/mobility-hindrances/shape",
+            "shape": "http://localhost:10101/page-without-relations/shape",
             "timestampPath": "prov:generatedAtTime",
             "versionOfPath": "dct:isVersionOf"
           },
           "items": [
             {
-              "@id": "https://private-api.gipod.beta-vlaanderen.be/api/v1/mobility-hindrances/1",
+              "@id": "http://localhost:10101/page-without-relations/1",
               "@type": "MobilityHindrance",
               "gipodId": 10228787,
               "identifier": [
@@ -93,7 +93,7 @@
               "generatedAtTime": "2020-12-28T09:37:18.577Z",
               "eventName": "MobilityHindranceWasImportedFromLegacy",
               "isVersionOf": "/api/v1/mobility-hindrances/10228787",
-              "memberOf": "https://private-api.gipod.beta-vlaanderen.be/api/v1/ldes/mobility-hindrances",
+              "memberOf": "http://localhost:10101/api/v1/ldes/mobility-hindrances/memberOf",
               "lastModifiedOn": "2020-12-07T15:10:22.18Z",
               "lastModifiedBy": {
                 "isVersionOf": "/api/v1/organisations/0201f2a2-39e6-0a88-b5a3-c912f52a9a93",
@@ -134,19 +134,19 @@
           "@context": [
             "https://gipod.api.vlaanderen.be/api/v1/context/gipod.jsonld"
           ],
-          "@id": "http://localhost:10101/page-without-relations",
+          "@id": "http://localhost:10101/page-without-relations/id3",
           "@type": "Node",
-          "viewOf": "https://private-api.gipod.beta-vlaanderen.be/api/v1/ldes/mobility-hindrances",
+          "viewOf": "http://localhost:10101/api/v1/ldes/mobility-hindrances/viewOf",
           "collectionInfo": {
-            "@id": "https://private-api.gipod.beta-vlaanderen.be/api/v1/ldes/mobility-hindrances",
+            "@id": "http://localhost:10101/api/v1/ldes/mobility-hindrances/id",
             "@type": "EventStream",
-            "shape": "https://private-api.gipod.beta-vlaanderen.be/api/v1/ldes/mobility-hindrances/shape",
+            "shape": "http://localhost:10101/api/v1/ldes/mobility-hindrances/shape",
             "timestampPath": "prov:generatedAtTime",
             "versionOfPath": "dct:isVersionOf"
           },
           "items": [
             {
-              "@id": "https://private-api.gipod.beta-vlaanderen.be/api/v1/mobility-hindrances/1",
+              "@id": "http://localhost:10101/page-without-relations/1",
               "@type": "MobilityHindrance",
               "gipodId": 10228787,
               "identifier": [
@@ -209,7 +209,7 @@
               "generatedAtTime": "2020-12-28T09:37:18.577Z",
               "eventName": "MobilityHindranceWasImportedFromLegacy",
               "isVersionOf": "/api/v1/mobility-hindrances/10228787",
-              "memberOf": "https://private-api.gipod.beta-vlaanderen.be/api/v1/ldes/mobility-hindrances",
+              "memberOf": "http://localhost:10101/api/v1/ldes/mobility-hindrances/memberOf",
               "lastModifiedOn": "2020-12-07T15:10:22.18Z",
               "lastModifiedBy": {
                 "isVersionOf": "/api/v1/organisations/0201f2a2-39e6-0a88-b5a3-c912f52a9a93",
@@ -224,7 +224,7 @@
               }
             },
             {
-              "@id": "https://private-api.gipod.beta-vlaanderen.be/api/v1/mobility-hindrances/2",
+              "@id": "http://localhost:10101/page-without-relations/2",
               "@type": "MobilityHindrance",
               "gipodId": 10228787,
               "identifier": [
@@ -287,7 +287,7 @@
               "generatedAtTime": "2020-12-29T09:37:18.578Z",
               "eventName": "MobilityHindranceWasImportedFromLegacy",
               "isVersionOf": "/api/v1/mobility-hindrances/10228787",
-              "memberOf": "https://private-api.gipod.beta-vlaanderen.be/api/v1/ldes/mobility-hindrances",
+              "memberOf": "http://localhost:10101/api/v1/ldes/mobility-hindrances/memberOf",
               "lastModifiedOn": "2020-12-07T15:10:22.18Z",
               "lastModifiedBy": {
                 "isVersionOf": "/api/v1/organisations/0201f2a2-39e6-0a88-b5a3-c912f52a9a93",

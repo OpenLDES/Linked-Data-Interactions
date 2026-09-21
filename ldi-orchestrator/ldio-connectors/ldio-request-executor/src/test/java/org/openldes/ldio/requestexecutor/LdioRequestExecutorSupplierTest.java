@@ -148,7 +148,12 @@ class LdioRequestExecutorSupplierTest {
 
 		RequestExecutor result = requestExecutorSupplier.getRequestExecutor(properties);
 
-		assertEquals(requestExecutor, result);
+		final var request = new org.openldes.ldi.requestexecutor.valueobjects.GetRequest(
+				"https://example.com/", org.openldes.ldi.requestexecutor.valueobjects.RequestHeaders.empty());
+		when(requestExecutor.execute(request)).thenReturn(new org.openldes.ldi.requestexecutor.valueobjects.Response(
+				request, List.of(), 503, (byte[]) null));
+		assertEquals(503, RequestExecutorDecorator.withDefaultRetryPolicy(result).execute(request).getHttpStatus());
+		verify(requestExecutor, times(1)).execute(request);
 	}
 
 	@Test

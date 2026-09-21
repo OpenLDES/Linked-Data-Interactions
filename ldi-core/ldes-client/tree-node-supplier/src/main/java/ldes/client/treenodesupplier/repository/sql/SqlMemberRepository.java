@@ -41,13 +41,15 @@ public class SqlMemberRepository implements MemberRepository {
 	public void saveTreeMembers(Stream<MemberRecord> treeMemberStream) {
 		entityManager.getTransaction().begin();
 		treeMemberStream.map(MemberRecordEntityMapper::fromMemberRecord)
-				.forEach(entityManager::merge);
+				.forEach(entityManager::persist);
 		entityManager.getTransaction().commit();
 	}
 
 	@Override
 	public void destroyState() {
-		entityManager.clear();
+		if (entityManager.isOpen()) {
+			entityManager.clear();
+		}
 	}
 
 	private int executeStatelessQuery(StatelessQueryExecutor queryExecutor) {

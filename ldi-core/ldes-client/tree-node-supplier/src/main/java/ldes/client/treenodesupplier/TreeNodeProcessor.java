@@ -2,6 +2,10 @@ package ldes.client.treenodesupplier;
 
 import org.openldes.ldi.requestexecutor.exceptions.HttpRequestException;
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.requestexecutor.services.RequestExecutorDecorator;
+import org.openldes.ldi.requestexecutor.services.SingleUseResponseRegistry;
+import org.openldes.ldi.requestexecutor.valueobjects.Request;
+import org.openldes.ldi.requestexecutor.valueobjects.Response;
 import org.openldes.ldi.timestampextractor.TimestampExtractor;
 import ldes.client.treenodefetcher.TreeNodeFetcher;
 import ldes.client.treenodefetcher.domain.entities.TreeMember;
@@ -15,8 +19,11 @@ import ldes.client.treenodesupplier.repository.TreeNodeRecordRepository;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import static java.lang.Thread.sleep;
@@ -28,8 +35,11 @@ public class TreeNodeProcessor {
 	private final MemberRepository memberRepository;
 	private final TreeNodeFetcher treeNodeFetcher;
 	private final LdesMetaData ldesMetaData;
-	private final RequestExecutor requestExecutor;
+	private final RequestExecutor responseReuseOwner;
+	private final SingleUseOkResponseCache requestExecutor;
 	private final Consumer<ClientStatus> clientStatusConsumer;
+	private final Set<String> explicitStartingNodes = ConcurrentHashMap.newKeySet();
+	private final Set<String> seenMemberIds = ConcurrentHashMap.newKeySet();
 	private MemberRecord memberRecord;
 
 	public TreeNodeProcessor(LdesMetaData ldesMetaData, LdesClientRepositories ldesClientRepositories,
@@ -37,10 +47,59 @@ public class TreeNodeProcessor {
 	                         Consumer<ClientStatus> clientStatusConsumer) {
 		this.treeNodeRecordRepository = ldesClientRepositories.treeNodeRecordRepository();
 		this.memberRepository = ldesClientRepositories.memberRepository();
-		this.requestExecutor = requestExecutor;
+		this.responseReuseOwner = requestExecutor;
+		this.requestExecutor = new SingleUseOkResponseCache(
+				requestExecutor,
+				RequestExecutorDecorator.withDefaultRetryPolicy(requestExecutor));
 		this.clientStatusConsumer = clientStatusConsumer;
-		this.treeNodeFetcher = new TreeNodeFetcher(requestExecutor, timestampExtractor);
+		this.treeNodeFetcher = new TreeNodeFetcher(this.requestExecutor, timestampExtractor);
 		this.ldesMetaData = ldesMetaData;
+		this.explicitStartingNodes.addAll(ldesMetaData.getStartingNodeUrls());
+	}
+
+	private static class SingleUseOkResponseCache implements RequestExecutor {
+		private final RequestExecutor responseReuseOwner;
+		private final RequestExecutor requestExecutor;
+		private final Map<String, Response> okResponsesByUrl = new ConcurrentHashMap<>();
+		private volatile boolean captureOkResponses;
+		private volatile Response lastCapturedOkResponse;
+
+		private SingleUseOkResponseCache(RequestExecutor responseReuseOwner, RequestExecutor requestExecutor) {
+			this.responseReuseOwner = responseReuseOwner;
+			this.requestExecutor = requestExecutor;
+		}
+
+		private void startCapturing() {
+			captureOkResponses = true;
+		}
+
+		private void stopCapturing() {
+			captureOkResponses = false;
+		}
+
+		private void alias(String sourceUrl, String targetUrl) {
+			Optional.ofNullable(okResponsesByUrl.get(sourceUrl))
+					.or(() -> Optional.ofNullable(lastCapturedOkResponse))
+					.or(() -> SingleUseResponseRegistry.consume(responseReuseOwner, sourceUrl))
+					.ifPresent(cachedResponse -> okResponsesByUrl.put(targetUrl, cachedResponse));
+		}
+
+		@Override
+		public Response execute(Request request) {
+			final Response cachedResponse = okResponsesByUrl.remove(request.getUrl());
+			if (cachedResponse != null) {
+				return cachedResponse;
+			}
+
+			final Response response = SingleUseResponseRegistry
+					.consume(responseReuseOwner, request)
+					.orElseGet(() -> requestExecutor.execute(request));
+			if (captureOkResponses && response.isOk()) {
+				okResponsesByUrl.put(request.getUrl(), response);
+				lastCapturedOkResponse = response;
+			}
+			return response;
+		}
 	}
 
 	public void init() {
@@ -73,8 +132,9 @@ public class TreeNodeProcessor {
 			try {
 				waitUntilNextVisit(treeNodeRecord);
 				TreeNodeResponse treeNodeResponse = treeNodeFetcher
-						.fetchTreeNode(ldesMetaData.createRequest(treeNodeRecord.getTreeNodeUrl()));
+						.fetchTreeNode(ldesMetaData.createRequest(treeNodeRecord.getTreeNodeUrl(), treeNodeRecord.getEtag()));
 				treeNodeRecord.updateStatus(treeNodeResponse.getMutabilityStatus());
+				treeNodeResponse.getEtag().ifPresent(treeNodeRecord::updateEtag);
 				saveNewRelations(treeNodeResponse);
 				List<TreeMember> newMembers = getNewMembersFromResponse(treeNodeResponse, treeNodeRecord);
 				saveNewMembers(newMembers);
@@ -92,14 +152,19 @@ public class TreeNodeProcessor {
 	private void saveNewMembers(List<TreeMember> newMembers) {
 		memberRepository.saveTreeMembers(newMembers
 				.stream()
-				.map(treeMember -> new MemberRecord(treeMember.getMemberId(), treeMember.getModel(), treeMember.getCreatedAt())));
+				.map(treeMember -> new MemberRecord(
+						treeMember.getMemberId(),
+						treeMember.getDataset(),
+						treeMember.getCreatedAt())));
 	}
 
-	private static List<TreeMember> getNewMembersFromResponse(TreeNodeResponse treeNodeResponse, TreeNodeRecord treeNodeRecord) {
+	private List<TreeMember> getNewMembersFromResponse(TreeNodeResponse treeNodeResponse, TreeNodeRecord treeNodeRecord) {
+		final boolean explicitStartingNode = explicitStartingNodes.contains(treeNodeRecord.getTreeNodeUrl());
 		return treeNodeResponse
 				.getMembers()
 				.stream()
 				.filter(member -> !treeNodeRecord.hasReceived(member.getMemberId()))
+				.filter(member -> seenMemberIds.add(member.getMemberId()) || explicitStartingNode)
 				.toList();
 	}
 
@@ -146,12 +211,31 @@ public class TreeNodeProcessor {
 	}
 
 	private void initializeTreeNodeRecordRepository() {
-		ldesMetaData.getStartingNodeUrls()
-				.stream()
-				.map(startingNode -> new StartingTreeNodeSupplier(requestExecutor)
-						.getStart(startingNode, ldesMetaData.getLang()))
-				.map(start -> new TreeNodeRecord(start.getStartingNodeUrl()))
-				.forEach(treeNodeRecordRepository::saveTreeNodeRecord);
+		requestExecutor.startCapturing();
+		try {
+			ldesMetaData.getStartingNodeUrls()
+					.stream()
+					.map(startingNode -> {
+						final Optional<String> resolvedStartingNode = SingleUseResponseRegistry.consumeResolvedUrl(responseReuseOwner, startingNode);
+						if (resolvedStartingNode.isPresent()) {
+							requestExecutor.alias(resolvedStartingNode.get(), resolvedStartingNode.get());
+							StartingTreeNode start = new StartingTreeNode(resolvedStartingNode.get(), ldesMetaData.getLang());
+							explicitStartingNodes.add(start.getStartingNodeUrl());
+							return start;
+						}
+						final StartingTreeNode start = new StartingTreeNodeSupplier(requestExecutor)
+								.getStart(startingNode, ldesMetaData.getLang());
+						if (startingNode.equals(start.getStartingNodeUrl())) {
+							requestExecutor.alias(startingNode, start.getStartingNodeUrl());
+						}
+						explicitStartingNodes.add(start.getStartingNodeUrl());
+						return start;
+					})
+					.map(start -> new TreeNodeRecord(start.getStartingNodeUrl()))
+					.forEach(treeNodeRecordRepository::saveTreeNodeRecord);
+		} finally {
+			requestExecutor.stopCapturing();
+		}
 	}
 
 	private void removeLastMember() {

@@ -1,0 +1,40 @@
+{
+  "@context": {
+    "id": "@id",
+    "type": "@type",
+    "value": "@value",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "@language": "nl-be",
+
+    "MobilityHindrance": "https://data.vlaanderen.be/ns/mobiliteit#Mobiliteitshinder",
+    "Organisation": "http://www.w3.org/ns/org#Organization",
+    "Period": "http://data.europa.eu/m8g/PeriodOfTime",
+    "Geometry": "http://www.w3.org/ns/locn#Geometry",
+    "Zone": "https://data.vlaanderen.be/ns/mobiliteit#Zone",
+    "Identifier": "http://www.w3.org/ns/adms#Identifier",
+    "gipodId": "https://gipod.vlaanderen.be/ns/gipod#gipodId",
+
+    "generatedAtTime": { "@id": "http://www.w3.org/ns/prov#generatedAtTime", "@type": "xsd:dateTime" },
+    "isVersionOf": { "@id": "http://purl.org/dc/terms/isVersionOf", "@type": "@id" },
+    "lastModifiedOn": { "@id": "http://purl.org/dc/terms/modified", "@type": "xsd:dateTime" },
+    "createdOn": { "@id": "http://purl.org/dc/terms/created", "@type": "xsd:dateTime" },
+    "status": { "@id": "https://data.vlaanderen.be/ns/mobiliteit#Inname.status", "@type": "@id" },
+    "eventName": "http://www.w3.org/ns/adms#versionNotes",
+    "createdBy": { "@id": "http://purl.org/dc/elements/1.1/creator", "@type": "@id" },
+    "lastModifiedBy": { "@id": "http://purl.org/dc/elements/1.1/contributor", "@type": "@id" },
+    "owner": { "@id": "https://data.vlaanderen.be/ns/mobiliteit#beheerder", "@type": "@id" },
+    "period": { "@id": "https://data.vlaanderen.be/ns/mobiliteit#periode", "@type": "@id", "@container": "@set" },
+    "zone": { "@id": "https://data.vlaanderen.be/ns/mobiliteit#zone", "@type": "@id", "@container": "@set" },
+    "zoneType": { "@id": "https://data.vlaanderen.be/ns/mobiliteit#Zone.type", "@type": "@id", "@container": "@set" },
+    "identifier": { "@id": "http://www.w3.org/ns/adms#identifier", "@type": "@id", "@container": "@set" },
+    "assignedByName": "http://www.w3.org/ns/adms#schemaAgency",
+    "Identifier.identifier": "http://www.w3.org/2004/02/skos/core#notation",
+    "prefLabel": "http://www.w3.org/2004/02/skos/core#prefLabel",
+    "preferredName": { "@id": "http://www.w3.org/2004/02/skos/core#prefLabel", "@type": "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString" },
+    "geometry": { "@id": "http://www.w3.org/ns/locn#geometry", "@type": "@id" },
+    "wkt": { "@id": "http://www.opengis.net/ont/geosparql#asWKT", "@type": "http://www.opengis.net/ont/geosparql#wktLiteral" },
+    "description": { "@id": "http://purl.org/dc/terms/description", "@type": "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString" },
+    "end": { "@id": "http://data.europa.eu/m8g/endTime", "@type": "xsd:dateTime" },
+    "start": { "@id": "http://data.europa.eu/m8g/startTime", "@type": "xsd:dateTime" }
+  }
+}

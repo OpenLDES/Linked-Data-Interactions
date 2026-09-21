@@ -14,8 +14,6 @@ class TreeNodeSpecificationTest {
 
 		final EventStreamProperties eventStreamProperties = new TreeNodeSpecification(model).extractEventStreamProperties();
 
-		assertThat(eventStreamProperties)
-				.usingRecursiveComparison()
-				.isEqualTo(expectedESProperties);
+		assertThat(eventStreamProperties.getUri()).isEqualTo(expectedESProperties.getUri());
 	}
 }

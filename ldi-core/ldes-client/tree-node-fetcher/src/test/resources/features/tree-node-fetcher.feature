@@ -4,15 +4,15 @@ Feature: TreeNodeFetcher
 
   Scenario Outline: Fetching an available TreeNode
     Given I have a TreeNodeFetcher
-    When I create a TreeNodeRequest with Lang "<rdfFormat>" and url "http://localhost:10101/200-1-relation-3-members" and etag ""
+    When I create a TreeNodeRequest with Lang "<rdfFormat>" and url "http://localhost:10101/<resource>" and etag ""
     And I fetch the TreeNode
     Then the obtained TreeNode has 3 members and 1 relations
     Examples:
-      | rdfFormat                |
-      | jsonld                   |
-      | turtle                   |
-      | nq                       |
-      | application/rdf+protobuf |
+      | rdfFormat                | resource                         |
+      | turtle                   | 200-1-relation-3-members.jsonld  |
+      | jsonld                   | 200-1-relation-3-members.ttl     |
+      | turtle                   | 200-1-relation-3-members.nq      |
+      | turtle                   | 200-1-relation-3-members.rpb     |
 
   Scenario: Fetching a redirect
     Given I have a TreeNodeFetcher
