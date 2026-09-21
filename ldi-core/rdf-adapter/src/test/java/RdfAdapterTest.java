@@ -44,9 +44,15 @@ class RdfAdapterTest {
 
 	@Test
 	void adapt_jsonLd() {
+		// The context is inline so that parsing a plain JSON-LD document does not
+		// depend on schema.org serving a context by content negotiation. Fetching a
+		// remote context is covered separately against a stubbed context below.
 		String content = """
 				{
-				  "@context": "http://schema.org/",
+				  "@context": {
+				    "@vocab": "http://schema.org/",
+				    "url": { "@type": "@id" }
+				  },
 				  "@type": "Person",
 				  "name": "Jane Doe",
 				  "jobTitle": "Professor",
