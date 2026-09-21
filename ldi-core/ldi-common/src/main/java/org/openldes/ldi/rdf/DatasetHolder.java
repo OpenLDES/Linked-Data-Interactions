@@ -53,6 +53,10 @@ public final class DatasetHolder {
 	 * listing would skip.
 	 */
 	public static Model flatten(Dataset dataset) {
+		if (!dataset.asDatasetGraph().listGraphNodes().hasNext()) {
+			// Nothing to merge: the default graph already holds every triple.
+			return dataset.getDefaultModel();
+		}
 		final Model flattenedModel = ModelFactory.createDefaultModel();
 		final Graph target = flattenedModel.getGraph();
 		final DatasetGraph source = dataset.asDatasetGraph();

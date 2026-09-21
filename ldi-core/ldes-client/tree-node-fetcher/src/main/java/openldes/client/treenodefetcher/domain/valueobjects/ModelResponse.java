@@ -84,6 +84,23 @@ public class ModelResponse {
 				.toList();
 	}
 
+	/**
+	 * Extracts the given members, in the order supplied. Use this when the
+	 * caller already knows the members in document order, so the result does
+	 * not depend on how the parsed graph stores its triples.
+	 */
+	public List<TreeMember> getMembers(List<Node> orderedMemberNodes) {
+		if (orderedMemberNodes.isEmpty()) {
+			return getMembers();
+		}
+		return orderedMemberNodes.stream()
+				.map(model::asRDFNode)
+				.filter(RDFNode::isResource)
+				.map(RDFNode::asResource)
+				.map(this::processMember)
+				.toList();
+	}
+
 	public boolean isImmutable() {
 		return statements(model.listStatements(ANY_RESOURCE, W3ID_LDES_IMMUTABLE, (RDFNode) null))
 				.map(Statement::getObject)
