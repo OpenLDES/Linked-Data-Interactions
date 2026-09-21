@@ -15,6 +15,9 @@ import org.apache.jena.query.Dataset;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.graph.Graph;
+import org.apache.jena.sparql.core.DatasetGraph;
+import org.apache.jena.sparql.core.DatasetGraphFactory;
 import org.apache.jena.riot.system.StreamRDFBase;
 import org.apache.jena.sparql.core.Quad;
 
@@ -25,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static ldes.client.treenodefetcher.domain.valueobjects.Constants.W3ID_TREE_MEMBER;
 import static ldes.client.treenodefetcher.domain.valueobjects.Constants.W3ID_TREE_NODE;
 import static ldes.client.treenodefetcher.domain.valueobjects.Constants.W3ID_TREE_RELATION;
 import static ldes.client.treenodefetcher.domain.valueobjects.Constants.W3ID_TREE_VIEW;
@@ -91,7 +95,7 @@ public class TreeNodeFetcher {
 	private TreeNodeResponse createOkResponse(TreeNodeRequest treeNodeRequest, Response response) {
 		final byte[] responseBody = response.getBody().orElseThrow();
 		final String contentType = response.getFirstHeaderValue(HttpHeaders.CONTENT_TYPE).orElse(null);
-		final Dataset dataset = DatasetFactory.createTxnMem();
+		final Dataset dataset = DatasetFactory.wrap(DatasetGraphFactory.create());
 		final RelationOrderCollector collector = new RelationOrderCollector(treeNodeRequest.getTreeNodeUrl(), dataset);
 		RdfResponseParser.parser(responseBody, contentType, treeNodeRequest.getTreeNodeUrl(), treeNodeRequest.getLang())
 				.parse(collector);
@@ -101,9 +105,10 @@ public class TreeNodeFetcher {
 				treeNodeRequest.getTreeNodeUrl());
 		final MutabilityStatus mutabilityStatus = getMutabilityStatus(response, modelResponse);
 		final List<String> relations = collector.getRelations();
+		final List<Node> memberNodes = collector.getMemberNodes();
 		return new TreeNodeResponse(
 				relations.isEmpty() ? modelResponse.getRelations() : relations,
-				modelResponse.getMembers(),
+				modelResponse.getMembers(memberNodes),
 				mutabilityStatus,
 				getEtag(response),
 				dataset,
@@ -141,31 +146,45 @@ public class TreeNodeFetcher {
 	 */
 	private static class RelationOrderCollector extends StreamRDFBase {
 		private final Node treeNode;
-		private final Dataset dataset;
+		private final DatasetGraph datasetGraph;
+		private final Graph defaultGraph;
 		private final List<Node> viewNodes = new ArrayList<>();
+		private final List<Node> memberNodes = new ArrayList<>();
+		private final Map<Node, List<Node>> memberNodesByStream = new HashMap<>();
+		private final Map<Node, List<Node>> streamsByView = new HashMap<>();
 		private final Map<Node, List<Node>> relationNodesByTreeNode = new HashMap<>();
 		private final Map<Node, List<String>> treeNodesByRelation = new HashMap<>();
 
 		private RelationOrderCollector(String treeNodeIri, Dataset dataset) {
-			this.dataset = dataset;
+			this.datasetGraph = dataset.asDatasetGraph();
+			this.defaultGraph = this.datasetGraph.getDefaultGraph();
 			this.treeNode = NodeFactory.createURI(treeNodeIri);
 		}
 
 		@Override
 		public void triple(Triple triple) {
-			dataset.asDatasetGraph().add(new Quad(Quad.defaultGraphNodeGenerated, triple));
+			defaultGraph.add(triple);
 			process(triple);
 		}
 
 		@Override
 		public void quad(Quad quad) {
-			dataset.asDatasetGraph().add(quad);
+			datasetGraph.add(quad);
 			process(quad.asTriple());
 		}
 
 		private void process(Triple triple) {
 			if (W3ID_TREE_VIEW.asNode().equals(triple.getPredicate()) && triple.getObject().isURI()) {
 				viewNodes.add(triple.getObject());
+				streamsByView
+						.computeIfAbsent(triple.getObject(), view -> new ArrayList<>())
+						.add(triple.getSubject());
+			}
+			if (W3ID_TREE_MEMBER.asNode().equals(triple.getPredicate())) {
+				memberNodes.add(triple.getObject());
+				memberNodesByStream
+						.computeIfAbsent(triple.getSubject(), stream -> new ArrayList<>())
+						.add(triple.getObject());
 			}
 			if (W3ID_TREE_RELATION.asNode().equals(triple.getPredicate())) {
 				relationNodesByTreeNode
@@ -177,6 +196,20 @@ public class TreeNodeFetcher {
 						.computeIfAbsent(triple.getSubject(), relation -> new ArrayList<>())
 						.add(triple.getObject().getURI());
 			}
+		}
+
+		/**
+		 * The members of this tree node in document order. Event streams that
+		 * declare this tree node as a view are preferred, which mirrors the
+		 * selection {@link ModelResponse} applies, and the document order makes
+		 * the result independent of how the parsed graph stores its triples.
+		 */
+		private List<Node> getMemberNodes() {
+			final List<Node> selected = streamsByView.getOrDefault(treeNode, List.of()).stream()
+					.flatMap(stream -> memberNodesByStream.getOrDefault(stream, List.<Node>of()).stream())
+					.distinct()
+					.toList();
+			return selected.isEmpty() ? memberNodes.stream().distinct().toList() : selected;
 		}
 
 		private List<String> getRelations() {

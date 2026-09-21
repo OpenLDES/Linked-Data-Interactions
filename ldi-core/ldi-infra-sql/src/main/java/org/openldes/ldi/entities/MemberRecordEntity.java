@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
 public class MemberRecordEntity {
 
 	@Id
-	@GeneratedValue
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "member_id_seq")
+	@SequenceGenerator(name = "member_id_seq", sequenceName = "member_id_seq", allocationSize = 500)
 	private int id;
 	@Column(columnDefinition = "text", length = 10485760)
 	private String memberId;

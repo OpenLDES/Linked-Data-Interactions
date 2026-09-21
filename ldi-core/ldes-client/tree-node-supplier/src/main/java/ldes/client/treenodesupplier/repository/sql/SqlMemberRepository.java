@@ -41,7 +41,7 @@ public class SqlMemberRepository implements MemberRepository {
 	public void saveTreeMembers(Stream<MemberRecord> treeMemberStream) {
 		entityManager.getTransaction().begin();
 		treeMemberStream.map(MemberRecordEntityMapper::fromMemberRecord)
-				.forEach(entityManager::merge);
+				.forEach(entityManager::persist);
 		entityManager.getTransaction().commit();
 	}
 
