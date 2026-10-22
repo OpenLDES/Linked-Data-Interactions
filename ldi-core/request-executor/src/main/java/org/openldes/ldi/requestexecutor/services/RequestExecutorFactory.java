@@ -6,6 +6,7 @@ import org.openldes.ldi.requestexecutor.executor.edc.EdcRequestExecutor;
 import org.openldes.ldi.requestexecutor.executor.edc.services.TokenService;
 import org.openldes.ldi.requestexecutor.executor.edc.valueobjects.EdcUrlProxy;
 import org.openldes.ldi.requestexecutor.executor.noauth.DefaultConfig;
+import org.openldes.ldi.requestexecutor.valueobjects.HttpTimeouts;
 import org.apache.http.Header;
 
 import java.util.ArrayList;
@@ -24,7 +25,11 @@ public class RequestExecutorFactory {
     }
 
     public RequestExecutor createNoAuthExecutor(Collection<Header> headers) {
-        return new DefaultConfig(headers, enableRedirectHandling).createRequestExecutor();
+        return createNoAuthExecutor(headers, HttpTimeouts.defaults());
+    }
+
+    public RequestExecutor createNoAuthExecutor(Collection<Header> headers, HttpTimeouts timeouts) {
+        return new DefaultConfig(headers, enableRedirectHandling, timeouts).createRequestExecutor();
     }
 
     public RequestExecutor createNoAuthExecutor() {
@@ -36,7 +41,16 @@ public class RequestExecutorFactory {
                                                            String secret,
                                                            String tokenEndpoint,
                                                            String scope) {
-        var config = new ClientCredentialsConfig(headers, clientId, secret, tokenEndpoint, scope, enableRedirectHandling);
+        return createClientCredentialsExecutor(headers, clientId, secret, tokenEndpoint, scope, HttpTimeouts.defaults());
+    }
+
+    public RequestExecutor createClientCredentialsExecutor(Collection<Header> headers,
+                                                           String clientId,
+                                                           String secret,
+                                                           String tokenEndpoint,
+                                                           String scope,
+                                                           HttpTimeouts timeouts) {
+        var config = new ClientCredentialsConfig(headers, clientId, secret, tokenEndpoint, scope, enableRedirectHandling, timeouts);
         return config.createRequestExecutor();
     }
 

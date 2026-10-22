@@ -4,6 +4,7 @@ import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
 import org.openldes.ldi.requestexecutor.services.RequestExecutorDecorator;
 import org.openldes.ldi.requestexecutor.services.RequestExecutorFactory;
 import org.openldes.ldi.requestexecutor.valueobjects.AuthStrategy;
+import org.openldes.ldi.requestexecutor.valueobjects.HttpTimeouts;
 import org.openldes.ldio.pipeline.creation.valueobjects.ComponentProperties;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.retry.Retry;
@@ -17,6 +18,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -98,7 +100,7 @@ class LdioRequestExecutorSupplierTest {
 						new BasicHeaderWithEquals("other-header-key", "other-header-value"),
 						new BasicHeaderWithEquals("key-header", "key")
 				);
-		when(requestExecutorFactory.createNoAuthExecutor(expectedHeaders)).thenReturn(requestExecutor);
+		when(requestExecutorFactory.createNoAuthExecutor(expectedHeaders, HttpTimeouts.defaults())).thenReturn(requestExecutor);
 		RequestExecutorDecorator requestExecutorDecorator = mock(RequestExecutorDecorator.class);
 		when(requestExecutorDecorator.with((Retry) any())).thenReturn(requestExecutorDecorator);
 		when(requestExecutorDecorator.with((RateLimiter) any())).thenReturn(requestExecutorDecorator);
@@ -143,12 +145,57 @@ class LdioRequestExecutorSupplierTest {
 				CLIENT_SECRET, "secret",
 				TOKEN_ENDPOINT, "token"));
 		RequestExecutor requestExecutor = mock(RequestExecutor.class);
-		when(requestExecutorFactory.createClientCredentialsExecutor(List.of(), "client", "secret", "token", null))
+		when(requestExecutorFactory.createClientCredentialsExecutor(List.of(), "client", "secret", "token", null, HttpTimeouts.defaults()))
 				.thenReturn(requestExecutor);
 
 		RequestExecutor result = requestExecutorSupplier.getRequestExecutor(properties);
 
 		assertEquals(requestExecutor, result);
+	}
+
+	@Test
+	void shouldPassConfiguredTimeouts_whenTimeoutPropertiesConfigured() {
+		ComponentProperties properties = new ComponentProperties(pipelineName, componentName, Map.of(
+				RETRIES_ENABLED, "false",
+				TIMEOUT_CONNECT, "PT5S",
+				TIMEOUT_CONNECTION_REQUEST, "PT10S",
+				TIMEOUT_SOCKET, "PT2M"));
+		HttpTimeouts expectedTimeouts = new HttpTimeouts(Duration.ofSeconds(5), Duration.ofSeconds(10), Duration.ofMinutes(2));
+		RequestExecutor requestExecutor = mock(RequestExecutor.class);
+		when(requestExecutorFactory.createNoAuthExecutor(List.of(), expectedTimeouts)).thenReturn(requestExecutor);
+
+		requestExecutorSupplier.getRequestExecutor(properties);
+
+		verify(requestExecutorFactory).createNoAuthExecutor(List.of(), expectedTimeouts);
+	}
+
+	@Test
+	void shouldUseDefaultForTimeoutsThatAreNotConfigured() {
+		ComponentProperties properties = new ComponentProperties(pipelineName, componentName, Map.of(
+				RETRIES_ENABLED, "false",
+				TIMEOUT_SOCKET, "PT10M"));
+		HttpTimeouts expectedTimeouts = new HttpTimeouts(HttpTimeouts.DEFAULT_CONNECT_TIMEOUT,
+				HttpTimeouts.DEFAULT_CONNECTION_REQUEST_TIMEOUT, Duration.ofMinutes(10));
+		RequestExecutor requestExecutor = mock(RequestExecutor.class);
+		when(requestExecutorFactory.createNoAuthExecutor(List.of(), expectedTimeouts)).thenReturn(requestExecutor);
+
+		requestExecutorSupplier.getRequestExecutor(properties);
+
+		verify(requestExecutorFactory).createNoAuthExecutor(List.of(), expectedTimeouts);
+	}
+
+	@Test
+	void shouldThrowException_whenTimeoutIsNotAnIsoDuration() {
+		ComponentProperties properties = new ComponentProperties(pipelineName, componentName, Map.of(TIMEOUT_SOCKET, "60000"));
+		assertThrows(IllegalArgumentException.class,
+				() -> requestExecutorSupplier.getRequestExecutor(properties));
+	}
+
+	@Test
+	void shouldThrowException_whenTimeoutIsNotPositive() {
+		ComponentProperties properties = new ComponentProperties(pipelineName, componentName, Map.of(TIMEOUT_SOCKET, "PT0S"));
+		assertThrows(IllegalArgumentException.class,
+				() -> requestExecutorSupplier.getRequestExecutor(properties));
 	}
 
 	@Test
