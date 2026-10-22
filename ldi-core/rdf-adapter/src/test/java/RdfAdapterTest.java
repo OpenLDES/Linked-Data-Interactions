@@ -1,3 +1,4 @@
+import org.apache.jena.riot.RDFDataMgr;
 import org.openldes.ldi.RdfAdapter;
 import org.openldes.ldi.types.LdiAdapter;
 import org.apache.jena.rdf.model.Model;
@@ -51,7 +52,7 @@ class RdfAdapterTest {
 				  "name": "Jane Doe",
 				  "jobTitle": "Professor",
 				  "telephone": "(425) 123-4567",
-				  "url": "http://www.janedoe.com"
+				  "url": { "@id": "http://www.janedoe.com" }
 				}""";
 
 		Model result = adapter.apply(LdiAdapter.Content.of(content, "application/ld+json"))
