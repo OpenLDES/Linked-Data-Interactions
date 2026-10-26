@@ -1,5 +1,10 @@
 package org.openldes.ldio;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.openldes.ldi.requestexecutor.exceptions.HttpRequestException;
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
 import org.openldes.ldi.requestexecutor.services.RequestExecutorFactory;
 import org.openldes.ldi.services.ComponentExecutor;
@@ -22,6 +27,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.mockito.Mockito;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.support.CronTrigger;
 
@@ -36,6 +42,7 @@ import static com.github.tomakehurst.wiremock.client.CountMatchingStrategy.LESS_
 import static com.github.tomakehurst.wiremock.client.WireMock.reset;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.awaitility.Awaitility.await;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.after;
@@ -54,15 +61,22 @@ class LdioHttpInputPollerTest {
 	private static final String CONTENT_TYPE = "application/n-quads";
 	private LdioHttpInputPoller ldioHttpInputPoller;
 	private static final RequestExecutor noAuthExecutor = new RequestExecutorFactory().createNoAuthExecutor();
+	// Nothing listens on this port, so every request fails with an I/O error (connection refused).
+	private static final String UNREACHABLE = "http://localhost:1/resource";
+	private final Logger logger = (Logger) LoggerFactory.getLogger(LdioHttpInputPoller.class);
+	private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
 
 	@BeforeEach
 	void setUp() {
+		logs.start();
+		logger.addAppender(logs);
 		reset();
 		when(adapter.apply(any())).thenReturn(Stream.of());
 	}
 
 	@AfterEach
 	void tearDown() {
+		logger.detachAppender(logs);
 		ldioHttpInputPoller.shutdown();
 	}
 
@@ -200,6 +214,51 @@ class LdioHttpInputPollerTest {
 
 		Mockito.verify(adapter, after(4000).never()).apply(any());
 		WireMock.verify(new CountMatchingStrategy(GREATER_THAN_OR_EQUAL, 1), getRequestedFor(urlEqualTo(ENDPOINT)));
+	}
+
+	// Final-failure logging (#44). Not a @Nested class: the WireMock server of @WireMockTest stops after the first nested class.
+	private List<String> errors() {
+		return logs.list.stream().filter(e -> e.getLevel() == Level.ERROR).map(ILoggingEvent::getFormattedMessage).toList();
+	}
+
+	@Test
+	void when_RequestFailsWithIOErrorAndContinueOnFail_then_OneErrorWithUrlAndCause() {
+		initPoller(List.of(UNREACHABLE), null, true);
+
+		ldioHttpInputPoller.run();
+
+		assertThat(errors()).singleElement().asString()
+				.startsWith("Failed to poll GET " + UNREACHABLE + ": ")
+				.contains("Connect");
+	}
+
+	@Test
+	void when_HeaderMissingAndContinueOnFail_then_OneErrorWithUrl() {
+		stubFor(get(ENDPOINT).willReturn(ok().withBody(CONTENT)));
+		initPoller(List.of(BASE_URL + ENDPOINT), null, true);
+
+		ldioHttpInputPoller.run();
+
+		assertThat(errors()).singleElement().asString()
+				.startsWith("Failed to poll GET " + BASE_URL + ENDPOINT + ": Expected to find header with key 'Content-Type'");
+	}
+
+	@Test
+	void when_RequestFailsAndContinueOnFailIsFalse_then_RethrownWithoutOwnLogLine() {
+		initPoller(List.of(UNREACHABLE), null, false);
+
+		assertThrows(HttpRequestException.class, () -> ldioHttpInputPoller.run());
+		assertThat(errors()).isEmpty();
+	}
+
+	@Test
+	void when_ResponseIsNot2xx_then_OnlyTheExistingErrorLines() {
+		stubFor(get(ENDPOINT).willReturn(serverError().withBody("boom")));
+		initPoller(List.of(BASE_URL + ENDPOINT), null, true);
+
+		ldioHttpInputPoller.run();
+
+		assertThat(errors()).containsExactly("Failed to execute request GET " + BASE_URL + ENDPOINT + " 500", "boom");
 	}
 
 	static class PollingIntervalArgumentsProvider implements ArgumentsProvider {

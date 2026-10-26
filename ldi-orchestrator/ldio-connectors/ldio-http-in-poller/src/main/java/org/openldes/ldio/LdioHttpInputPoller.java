@@ -1,5 +1,6 @@
 package org.openldes.ldio;
 
+import org.openldes.ldi.requestexecutor.exceptions.HttpRequestException;
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
 import org.openldes.ldi.requestexecutor.valueobjects.Request;
 import org.openldes.ldi.requestexecutor.valueobjects.Response;
@@ -63,6 +64,12 @@ public class LdioHttpInputPoller extends LdioInput implements Runnable {
 		properties.getRequests().forEach(request -> {
 			try {
 				executeRequest(request);
+			} catch (HttpRequestException | MissingHeaderException e) {
+				// An error status and a processing failure are logged where they occur; these two are not.
+				if (!properties.isContinueOnFailEnabled()) {
+					throw e;
+				}
+				log.atError().log("Failed to poll {} {}: {}", request.getMethod(), request.getUrl(), e.getMessage());
 			} catch (Exception e) {
 				if (!properties.isContinueOnFailEnabled()) {
 					throw e;

@@ -38,9 +38,9 @@ public class ClientCredentialsRequestExecutor implements RequestExecutor {
 			return new Response(request, headers, response.getCode(), response.getBody());
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			throw new HttpRequestException(e);
+			throw new HttpRequestException(request.getUrl(), e);
 		} catch (IOException | ExecutionException e) {
-			throw new HttpRequestException(e);
+			throw new HttpRequestException(request.getUrl(), e);
 		}
 	}
 
