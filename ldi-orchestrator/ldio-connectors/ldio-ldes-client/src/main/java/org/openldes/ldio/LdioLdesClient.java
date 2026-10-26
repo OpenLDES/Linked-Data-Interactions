@@ -10,6 +10,7 @@ import org.openldes.ldio.pipeline.status.PipelineStatusTrigger;
 import org.openldes.ldio.pipeline.status.StatusChangeSource;
 import ldes.client.treenodesupplier.domain.valueobject.ClientStatus;
 import ldes.client.treenodesupplier.domain.valueobject.EndOfLdesException;
+import ldes.client.treenodesupplier.domain.valueobject.SuppliedMember;
 import ldes.client.treenodesupplier.membersuppliers.MemberSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,25 +67,52 @@ public class LdioLdesClient extends LdioInput {
 		});
 	}
 
+	/**
+	 * Fetching a member from the LDES and processing it (transformers and outputs) fail in different ways:
+	 * <ul>
+	 *     <li>The LDES is unavailable: the client pauses and fetches again once the pipeline is resumed.</li>
+	 *     <li>Processing a member fails: the client pauses and keeps that member. Once the pipeline is resumed, the
+	 *     same member is processed again before the next one is fetched. The member supplier only removes a member
+	 *     from its state when the next one is requested, so the member is also delivered again after a restart.</li>
+	 * </ul>
+	 */
 	private synchronized void run() {
-		try {
-			while (threadRunning) {
-				checkPause();
-				processModel(memberSupplier.get().getModel());
+		SuppliedMember failedMember = null;
+		while (threadRunning) {
+			checkPause();
+			final SuppliedMember member;
+			if (failedMember != null) {
+				member = failedMember;
+			} else {
+				try {
+					member = memberSupplier.get();
+				} catch (EndOfLdesException e) {
+					log.info("SHUTTING DOWN pipeline {} because end of LDES has been reached", pipelineName);
+					shutdownPipeline();
+					return;
+				} catch (HttpRequestException e) {
+					pauseOnError("LDES URL unavailable. Client paused: {}", e.getMessage());
+					continue;
+				} catch (Exception e) {
+					pauseOnError("LdesClientRunner FAILURE: {}", e.getMessage());
+					return;
+				}
 			}
-		} catch (EndOfLdesException e) {
-			log.info("SHUTTING DOWN pipeline {} because end of LDES has been reached", pipelineName);
-			shutdownPipeline();
-		} catch (HttpRequestException e) {
-			updateStatus(PipelineStatusTrigger.HALT, StatusChangeSource.AUTO);
-			clientStatusConsumer.accept(ClientStatus.ERROR);
-			log.error("LDES URL unavailable. Client paused: {}", e.getMessage());
-			run();
-		} catch (Exception e) {
-			updateStatus(PipelineStatusTrigger.HALT, StatusChangeSource.AUTO);
-			clientStatusConsumer.accept(ClientStatus.ERROR);
-			log.error("LdesClientRunner FAILURE: {}", e.getMessage());
+			try {
+				processModel(member.getModel());
+				failedMember = null;
+			} catch (Exception e) {
+				failedMember = member;
+				pauseOnError("Processing member {} failed. Client paused, the member is processed again when the pipeline is resumed: {}",
+						member.getId(), e.getMessage());
+			}
 		}
+	}
+
+	private void pauseOnError(String message, Object... arguments) {
+		updateStatus(PipelineStatusTrigger.HALT, StatusChangeSource.AUTO);
+		clientStatusConsumer.accept(ClientStatus.ERROR);
+		log.error(message, arguments);
 	}
 
 	private synchronized void checkPause() {
