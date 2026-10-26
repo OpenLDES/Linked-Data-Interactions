@@ -61,7 +61,9 @@ class ClientCredentialsRequestExecutorTest {
 
 			assertThatThrownBy(() -> clientCredentialsRequestExecutor.execute(request))
 					.isInstanceOf(HttpRequestException.class)
-					.hasCauseInstanceOf(IOException.class);
+					.hasCauseInstanceOf(IOException.class)
+					.extracting(e -> ((HttpRequestException) e).getUrl())
+					.isEqualTo(java.util.Optional.of("url"));
 		}
 
 		@Test

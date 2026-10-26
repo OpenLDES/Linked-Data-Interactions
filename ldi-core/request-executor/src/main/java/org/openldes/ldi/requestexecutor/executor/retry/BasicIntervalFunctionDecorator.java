@@ -1,5 +1,6 @@
 package org.openldes.ldi.requestexecutor.executor.retry;
 
+import org.openldes.ldi.requestexecutor.exceptions.HttpRequestException;
 import org.openldes.ldi.requestexecutor.valueobjects.Response;
 import io.github.resilience4j.core.IntervalBiFunction;
 import io.github.resilience4j.core.IntervalFunction;
@@ -29,20 +30,42 @@ public class BasicIntervalFunctionDecorator implements IntervalBiFunction<Respon
 	@Override
 	public Long apply(Integer attempt, Either<Throwable, Response> eitherResponse) {
 		final Response response = eitherResponse.isRight() ? eitherResponse.get() : null;
-		log.atWarn().log(getRetryLogSupplier(attempt, response));
+		final Throwable failure = eitherResponse.isLeft() ? eitherResponse.getLeft() : null;
+		log.atWarn().log(getRetryLogSupplier(attempt, response, failure));
 
 		return getRetryAfterHeader(response)
 				.map(RetryAfter::getMillisUntilRetry)
 				.orElseGet(() -> intervalFunction.apply(attempt));
 	}
 
-	private Supplier<String> getRetryLogSupplier(Integer attempt, Response response) {
+	private Supplier<String> getRetryLogSupplier(Integer attempt, Response response, Throwable failure) {
 		if (response != null) {
 			return () -> "Retrying request (attempt #%d) to %s after receiving response code %s"
 					.formatted(attempt, response.getRequestedUrl(), response.getHttpStatus());
+		} else if (failure != null) {
+			return () -> getUrl(failure)
+					.map(url -> "Retrying request (attempt #%d) to %s after %s".formatted(attempt, url, describe(failure)))
+					.orElseGet(() -> "Retrying request (attempt #%d) after %s".formatted(attempt, describe(failure)));
 		} else {
 			return () -> "Retrying request (attempt #%d) after null response".formatted(attempt);
 		}
+	}
+
+	private Optional<String> getUrl(Throwable failure) {
+		return failure instanceof HttpRequestException httpRequestException
+				? httpRequestException.getUrl()
+				: Optional.empty();
+	}
+
+	/**
+	 * An {@link HttpRequestException} only wraps the I/O error, so the cause is the interesting part,
+	 * e.g. "java.net.SocketTimeoutException: Read timed out".
+	 */
+	private String describe(Throwable failure) {
+		final Throwable cause = failure instanceof HttpRequestException && failure.getCause() != null
+				? failure.getCause()
+				: failure;
+		return cause.getMessage() == null ? cause.getClass().getName() : cause.getClass().getName() + ": " + cause.getMessage();
 	}
 
 	private Optional<RetryAfter> getRetryAfterHeader(Response nullableResponse) {

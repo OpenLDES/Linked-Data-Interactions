@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
@@ -28,7 +29,9 @@ class DefaultConfigTest {
 			assertTimeoutPreemptively(Duration.ofSeconds(10), () ->
 					assertThatThrownBy(() -> executor.execute(request))
 							.isInstanceOf(HttpRequestException.class)
-							.hasRootCauseInstanceOf(SocketTimeoutException.class));
+							.hasRootCauseInstanceOf(SocketTimeoutException.class)
+							.extracting(e -> ((HttpRequestException) e).getUrl())
+							.isEqualTo(Optional.of(server.url("/sparql"))));
 		}
 	}
 
