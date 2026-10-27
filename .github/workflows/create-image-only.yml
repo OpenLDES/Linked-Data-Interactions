@@ -59,7 +59,7 @@ jobs:
           export VERSION=$(mvn help:evaluate -Dexpression="project.version" -q -DforceStdout)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       - name: Analyse & publish package
-        if: ${{ env.ANALYSE_PACKAGE == true }}
+        if: ${{ env.ANALYSE_PACKAGE == 'true' }}
         run: |
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }} -Dsonar.organization=${{ env.SONAR_ORGANIZATION }} -Pcoverage
         env:
@@ -69,7 +69,7 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }}
       - name: build & publish package
-        if: ${{ env.ANALYSE_PACKAGE != true }}
+        if: ${{ env.ANALYSE_PACKAGE != 'true' }}
         run: |
           mvn -B verify
       - name: Upload JARs

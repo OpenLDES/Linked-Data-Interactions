@@ -6,12 +6,15 @@ import org.openldes.ldi.requestexecutor.executor.retry.RetryConfig;
 import org.openldes.ldi.requestexecutor.services.RequestExecutorDecorator;
 import org.openldes.ldi.requestexecutor.services.RequestExecutorFactory;
 import org.openldes.ldi.requestexecutor.valueobjects.AuthStrategy;
+import org.openldes.ldi.requestexecutor.valueobjects.HttpTimeouts;
 import org.openldes.ldio.pipeline.creation.valueobjects.ComponentProperties;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.retry.Retry;
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
 
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -78,10 +81,11 @@ public class LdioRequestExecutorSupplier {
         Optional<AuthStrategy> authentication = AuthStrategy
                 .from(componentProperties.getOptionalProperty(AUTH_TYPE).orElse(NO_AUTH.name()));
         final List<Header> headers = getHttpHeaders(componentProperties);
+        final HttpTimeouts timeouts = getTimeouts(componentProperties);
 
         if (authentication.isPresent()) {
             return switch (authentication.get()) {
-                case NO_AUTH -> requestExecutorFactory.createNoAuthExecutor(headers);
+                case NO_AUTH -> requestExecutorFactory.createNoAuthExecutor(headers, timeouts);
                 case API_KEY -> {
                     String apiKeyHeader = componentProperties
                             .getOptionalProperty(API_KEY_HEADER)
@@ -90,18 +94,39 @@ public class LdioRequestExecutorSupplier {
 
                     List<Header> headersWithApiKey = new ArrayList<>(headers);
                     headersWithApiKey.add(new BasicHeader(apiKeyHeader, apiKey));
-                    yield requestExecutorFactory.createNoAuthExecutor(headersWithApiKey);
+                    yield requestExecutorFactory.createNoAuthExecutor(headersWithApiKey, timeouts);
                 }
                 case OAUTH2_CLIENT_CREDENTIALS -> requestExecutorFactory.createClientCredentialsExecutor(
                         headers,
                         componentProperties.getProperty(CLIENT_ID),
                         componentProperties.getProperty(CLIENT_SECRET),
                         componentProperties.getProperty(TOKEN_ENDPOINT),
-                        componentProperties.getOptionalProperty(AUTH_SCOPE).orElse(null));
+                        componentProperties.getOptionalProperty(AUTH_SCOPE).orElse(null),
+                        timeouts);
             };
         }
         throw new UnsupportedOperationException("Requested authentication not available: "
                 + componentProperties.getOptionalProperty(AUTH_TYPE).orElse("No auth type provided"));
+    }
+
+    private HttpTimeouts getTimeouts(ComponentProperties props) {
+        return new HttpTimeouts(
+                getDuration(props, TIMEOUT_CONNECT, HttpTimeouts.DEFAULT_CONNECT_TIMEOUT),
+                getDuration(props, TIMEOUT_CONNECTION_REQUEST, HttpTimeouts.DEFAULT_CONNECTION_REQUEST_TIMEOUT),
+                getDuration(props, TIMEOUT_SOCKET, HttpTimeouts.DEFAULT_SOCKET_TIMEOUT));
+    }
+
+    private Duration getDuration(ComponentProperties props, String key, Duration defaultValue) {
+        return props.getOptionalProperty(key)
+                .map(value -> {
+                    try {
+                        return Duration.parse(value);
+                    } catch (DateTimeParseException e) {
+                        throw new IllegalArgumentException(
+                                "Invalid config for the property '%s': this must be a valid ISO 8601 duration, e.g. PT30S".formatted(key), e);
+                    }
+                })
+                .orElse(defaultValue);
     }
 
     private List<Header> getHttpHeaders(ComponentProperties componentProperties) {
