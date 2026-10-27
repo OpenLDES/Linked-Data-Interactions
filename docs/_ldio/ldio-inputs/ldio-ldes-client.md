@@ -170,3 +170,16 @@ api
   server.
 - When resumed, the LDES Client will continue processing the fragment where it has stopped and it will request new
   fragments form the server.
+
+## When something fails
+
+The LDES Client pauses itself (pipeline status `HALTED`, client status `ERROR`) in two cases:
+
+- **The LDES server is unavailable** (a fragment cannot be fetched). After a resume, the client fetches the fragment
+  again.
+- **Processing a member fails** (an exception from a transformer or an output, for example an output that cannot reach
+  its target). The client keeps that member. After a resume, it processes the same member again before it takes the
+  next one, so the member is not skipped. The log names the member and the cause.
+
+In both cases nothing is lost after a restart either: the client state only marks a member as processed when the next
+member is requested.
