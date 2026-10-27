@@ -6,11 +6,11 @@
     <parent>
         <groupId>org.openldes.ldio</groupId>
         <artifactId>ldio-connectors</artifactId>
-        <version>3.2.0-SNAPSHOT</version>
+        <version>3.1.2-SNAPSHOT</version>
     </parent>
 
     <properties>
-        <azure-sdk.version>1.2.38</azure-sdk.version>
+        <azure-sdk.version>1.2.16</azure-sdk.version>
         <jsonld-java.version>0.13.4</jsonld-java.version>
     </properties>
 
