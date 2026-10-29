@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class LdioLdesClientPropertiesTest {
@@ -20,5 +21,21 @@ class LdioLdesClientPropertiesTest {
 		assertThatThrownBy(() -> LdioLdesClientProperties.fromComponentProperties(properties))
 				.isInstanceOf(InvalidConfigException.class)
 				.hasMessage("Invalid config: \"The exactly once filter can not be enabled with version materialisation.\" .");
+	}
+
+	@Test
+	void given_OrderedIsConfigured_when_parseConfig_then_ReturnConfiguredValue() {
+		final ComponentProperties properties = new ComponentProperties("pipeline", "cname", Map.of(
+				LdioLdesClientPropertyKeys.ORDERED, String.valueOf(true)
+		));
+
+		assertThat(LdioLdesClientProperties.fromComponentProperties(properties).isOrderedEnabled()).isTrue();
+	}
+
+	@Test
+	void given_OrderedIsNotConfigured_when_parseConfig_then_ReturnDefaultFalse() {
+		final ComponentProperties properties = new ComponentProperties("pipeline", "cname", Map.of());
+
+		assertThat(LdioLdesClientProperties.fromComponentProperties(properties).isOrderedEnabled()).isFalse();
 	}
 }

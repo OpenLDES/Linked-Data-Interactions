@@ -28,7 +28,7 @@ public class RedirectRequestExecutor {
 	 */
 	public Response execute(final StartingNodeRequest startingNodeRequest) {
 		RequestHeaders requestHeaders = new RequestHeaders(
-				List.of(new RequestHeader(HttpHeaders.ACCEPT, startingNodeRequest.contentType())));
+				List.of(new RequestHeader(HttpHeaders.ACCEPT, startingNodeRequest.acceptHeader())));
 		Response response = requestExecutor.execute(new GetRequest(startingNodeRequest.url(), requestHeaders));
 		if (response.isOk()) {
 			return response;

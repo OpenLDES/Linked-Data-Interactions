@@ -13,16 +13,22 @@ public class TreeNodeRecord {
 	private TreeNodeStatus treeNodeStatus;
 	private LocalDateTime earliestNextVisit;
 	private final List<String> memberIds;
+	private String etag;
 
 	public TreeNodeRecord(String treeNodeUrl) {
 		this(treeNodeUrl, TreeNodeStatus.NOT_VISITED, LocalDateTime.now(), new ArrayList<>());
 	}
 
 	public TreeNodeRecord(String treeNodeUrl, TreeNodeStatus treeNodeStatus, LocalDateTime earliestNextVisit, List<String> memberIds) {
+		this(treeNodeUrl, treeNodeStatus, earliestNextVisit, memberIds, null);
+	}
+
+	public TreeNodeRecord(String treeNodeUrl, TreeNodeStatus treeNodeStatus, LocalDateTime earliestNextVisit, List<String> memberIds, String etag) {
 		this.treeNodeUrl = treeNodeUrl;
 		this.treeNodeStatus = treeNodeStatus;
 		this.earliestNextVisit = earliestNextVisit;
 		this.memberIds = memberIds;
+		this.etag = etag;
 	}
 
 	public String getTreeNodeUrl() {
@@ -51,6 +57,14 @@ public class TreeNodeRecord {
 	 */
 	public List<String> getMemberIds() {
 		return memberIds;
+	}
+
+	public String getEtag() {
+		return etag;
+	}
+
+	public void updateEtag(String etag) {
+		this.etag = etag;
 	}
 
 	/**

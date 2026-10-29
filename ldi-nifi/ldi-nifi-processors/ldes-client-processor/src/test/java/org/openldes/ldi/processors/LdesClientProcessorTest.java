@@ -39,6 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class LdesClientProcessorTest {
 
 	private static final String VERSION_OF = "http://purl.org/dc/terms/isVersionOf";
+	private static final String DUPLICATE_MEMBER_PAGES = "http://localhost:10101/duplicate-members?pageNumber=1,"
+			+ "http://localhost:10101/duplicate-members?pageNumber=2";
 
 	private TestRunner testRunner;
 
@@ -55,12 +57,13 @@ class LdesClientProcessorTest {
 
 	@AfterAll
 	static void afterAll() {
-		WireMock.verify(RequestPatternBuilder.allRequests().withHeader("Accept-Encoding", WireMock.matching("gzip")));
+		WireMock.verify(RequestPatternBuilder.allRequests()
+				.withHeader("Accept-Encoding", WireMock.containing("gzip")));
 		postgreSQLContainer.stop();
 	}
 
 	@BeforeEach
-	public void init() {
+	void init() {
 		testRunner = TestRunners.newTestRunner(LdesClientProcessor.class);
 	}
 
@@ -180,7 +183,9 @@ class LdesClientProcessorTest {
 
 		testRunner.run(6);
 
-		WireMock.verify(3, getRequestedFor(urlEqualTo("/retry")));
+		// The successful discovery response is reused as the traversal response, so the
+		// only HTTP calls are the initial retryable failure and its successful retry.
+		WireMock.verify(2, getRequestedFor(urlEqualTo("/retry")));
 
 		List<MockFlowFile> dataFlowfiles = testRunner.getFlowFilesForRelationship(DATA_RELATIONSHIP);
 
@@ -255,7 +260,7 @@ class LdesClientProcessorTest {
 	@ParameterizedTest
 	@ArgumentsSource(StatePersistenceArgumentsProvider.class)
 	void shouldSupportOnlyOnceFilter(Map<PropertyDescriptor, String> statePersistenceProps) throws InitializationException {
-		testRunner.setProperty("DATA_SOURCE_URLS", "http://localhost:10101/duplicate-members?pageNumber=1");
+		testRunner.setProperty("DATA_SOURCE_URLS", DUPLICATE_MEMBER_PAGES);
 		statePersistenceProps.forEach(testRunner::setProperty);
 		testRunner.setProperty("KEEP_STATE", Boolean.FALSE.toString());
 		testRunner.setProperty("USE_EXACTLY_ONCE_FILTER", Boolean.TRUE.toString());
@@ -281,7 +286,7 @@ class LdesClientProcessorTest {
 	@ParameterizedTest
 	@ArgumentsSource(StatePersistenceArgumentsProvider.class)
 	void shouldSupportDisableOfOnlyOnceFilter(Map<PropertyDescriptor, String> statePersistenceProps) throws InitializationException {
-		testRunner.setProperty("DATA_SOURCE_URLS", "http://localhost:10101/duplicate-members?pageNumber=1");
+		testRunner.setProperty("DATA_SOURCE_URLS", DUPLICATE_MEMBER_PAGES);
 		statePersistenceProps.forEach(testRunner::setProperty);
 		testRunner.setProperty("KEEP_STATE", Boolean.FALSE.toString());
 		testRunner.setProperty("USE_EXACTLY_ONCE_FILTER", Boolean.FALSE.toString());

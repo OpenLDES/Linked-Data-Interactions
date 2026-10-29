@@ -3,12 +3,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "/200-1-relation-3-members",
-        "headers": {
-          "Accept": {
-            "equalTo": "application/ld+json"
-          }
-        }
+        "url": "/200-1-relation-3-members.jsonld"
       },
       "response": {
         "status": 200,
@@ -21,12 +16,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "/200-1-relation-3-members",
-        "headers": {
-          "Accept": {
-            "equalTo": "application/n-quads"
-          }
-        }
+        "url": "/200-1-relation-3-members.nq"
       },
       "response": {
         "status": 200,
@@ -39,12 +29,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "/200-1-relation-3-members",
-        "headers": {
-          "Accept": {
-            "equalTo": "application/rdf+protobuf"
-          }
-        }
+        "url": "/200-1-relation-3-members.rpb"
       },
       "response": {
         "status": 200,
@@ -57,12 +42,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "/200-1-relation-3-members",
-        "headers": {
-          "Accept": {
-            "equalTo": "text/turtle"
-          }
-        }
+        "url": "/200-1-relation-3-members.ttl"
       },
       "response": {
         "status": 200,

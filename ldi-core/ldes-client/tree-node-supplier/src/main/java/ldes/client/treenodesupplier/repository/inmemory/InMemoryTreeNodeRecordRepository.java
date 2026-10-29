@@ -16,6 +16,10 @@ public class InMemoryTreeNodeRecordRepository implements TreeNodeRecordRepositor
 	private final Set<TreeNodeRecord> almostImmutable = new HashSet<>();
 
 	public void saveTreeNodeRecord(TreeNodeRecord treeNodeRecord) {
+		notVisited.removeIf(treeNodeRecord::equals);
+		mutableAndActive.removeIf(treeNodeRecord::equals);
+		almostImmutable.remove(treeNodeRecord);
+		immutable.remove(treeNodeRecord);
 		switch (treeNodeRecord.getTreeNodeStatus()) {
 			case NOT_VISITED -> notVisited.add(treeNodeRecord);
 			case MUTABLE_AND_ACTIVE -> {
@@ -35,14 +39,30 @@ public class InMemoryTreeNodeRecordRepository implements TreeNodeRecordRepositor
 
 	public boolean existsById(String treeNodeId) {
 		TreeNodeRecord treeNodeRecord = new TreeNodeRecord(treeNodeId);
-		return immutable.contains(treeNodeRecord) ||
+		return immutable.contains(treeNodeRecord) || almostImmutable.contains(treeNodeRecord) ||
 				Stream.of(notVisited, mutableAndActive)
 				.anyMatch(treeNodeRecords -> treeNodeRecords.contains(treeNodeRecord));
 	}
 
 	@Override
+	public Optional<TreeNodeRecord> findById(String treeNodeId) {
+		final TreeNodeRecord wanted = new TreeNodeRecord(treeNodeId);
+		return records().filter(wanted::equals).findFirst();
+	}
+
+	@Override
+	public List<TreeNodeRecord> findAll() {
+		return records().toList();
+	}
+
+	private Stream<TreeNodeRecord> records() {
+		return Stream.of(notVisited, mutableAndActive, almostImmutable, immutable)
+				.flatMap(Collection::stream);
+	}
+
+	@Override
 	public boolean containsTreeNodeRecords() {
-		return Stream.of(notVisited, mutableAndActive, immutable)
+		return Stream.of(notVisited, mutableAndActive, almostImmutable, immutable)
 				.anyMatch(treeNodeRecords -> !treeNodeRecords.isEmpty());
 	}
 
@@ -65,6 +85,7 @@ public class InMemoryTreeNodeRecordRepository implements TreeNodeRecordRepositor
 		notVisited = new ArrayList<>();
 		mutableAndActive = new PriorityQueue<>(new TreeNodeRecordComparator());
 		immutable = new HashSet<>();
+		almostImmutable.clear();
 	}
 
 	public Optional<TreeNodeRecord> getTreeNodeRecordWithStatusAndEarliestNextVisit(TreeNodeStatus treeNodeStatus) {

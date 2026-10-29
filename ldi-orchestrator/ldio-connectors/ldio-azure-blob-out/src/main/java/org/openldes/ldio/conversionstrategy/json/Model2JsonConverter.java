@@ -27,9 +27,15 @@ public class Model2JsonConverter {
 	public static final String NO_EXISTING_ID = "No Existing Id";
 	private final MemberIdExtractor memberIdExtractor = new MemberIdExtractor();
 	private final String jsonContextURI;
+	private final JsonLdOptions jsonLdOptions;
 
 	public Model2JsonConverter(String jsonContextURI) {
+		this(jsonContextURI, new JsonLdOptions());
+	}
+
+	public Model2JsonConverter(String jsonContextURI, JsonLdOptions jsonLdOptions) {
 		this.jsonContextURI = jsonContextURI;
+		this.jsonLdOptions = jsonLdOptions;
 	}
 
 	private Map<String, Object> getOptions(String jsonContext) {
@@ -64,7 +70,7 @@ public class Model2JsonConverter {
 	}
 
 	private Map<String, Object> getFramedJson(Object json, Map<String, Object> frame) {
-		return JsonLdProcessor.frame(json, frame, new JsonLdOptions());
+		return JsonLdProcessor.frame(json, frame, jsonLdOptions);
 	}
 
 	private Object createJsonObject(String ld) throws IOException {
