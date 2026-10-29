@@ -2,6 +2,7 @@ package ldes.client.treenodefetcher.domain.valueobjects;
 
 import org.openldes.ldi.timestampextractor.TimestampExtractor;
 import ldes.client.treenodefetcher.domain.entities.TreeMember;
+import org.apache.jena.atlas.iterator.Iter;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
@@ -19,7 +20,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static ldes.client.treenodefetcher.domain.valueobjects.Constants.*;
@@ -217,7 +217,6 @@ public class ModelResponse {
 	}
 
 	private Stream<Statement> statements(StmtIterator iterator) {
-		return Stream.iterate(iterator, Iterator::hasNext, UnaryOperator.identity())
-				.map(Iterator::next);
+		return Iter.asStream(iterator);
 	}
 }

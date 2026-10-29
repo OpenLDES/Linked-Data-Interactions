@@ -18,6 +18,8 @@ import ldes.client.treenodesupplier.repository.TreeNodeRecordRepository;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -31,6 +33,13 @@ import static ldes.client.treenodesupplier.domain.valueobject.ClientStatus.*;
 
 public class TreeNodeProcessor {
 
+	/**
+	 * How many member ids are remembered by default to recognise a member that
+	 * another tree node already presented. Holding every id would grow without
+	 * bound over a synchronisation that never ends.
+	 */
+	public static final int DEFAULT_SEEN_MEMBER_IDS = 1_000_000;
+
 	private final TreeNodeRecordRepository treeNodeRecordRepository;
 	private final MemberRepository memberRepository;
 	private final TreeNodeFetcher treeNodeFetcher;
@@ -39,12 +48,30 @@ public class TreeNodeProcessor {
 	private final SingleUseOkResponseCache requestExecutor;
 	private final Consumer<ClientStatus> clientStatusConsumer;
 	private final Set<String> explicitStartingNodes = ConcurrentHashMap.newKeySet();
-	private final Set<String> seenMemberIds = ConcurrentHashMap.newKeySet();
+	private final Set<String> seenMemberIds;
 	private MemberRecord memberRecord;
 
 	public TreeNodeProcessor(LdesMetaData ldesMetaData, LdesClientRepositories ldesClientRepositories,
 	                         RequestExecutor requestExecutor, TimestampExtractor timestampExtractor,
 	                         Consumer<ClientStatus> clientStatusConsumer) {
+		this(ldesMetaData, ldesClientRepositories, requestExecutor, timestampExtractor, clientStatusConsumer,
+				DEFAULT_SEEN_MEMBER_IDS);
+	}
+
+	/**
+	 * @param rememberedMemberIds how many member ids are remembered to recognise a
+	 *                            member that another tree node of the same stream
+	 *                            already presented. A synchronising client runs
+	 *                            without end, so the oldest ids are forgotten once
+	 *                            this many are held; a member that reappears after
+	 *                            that many others is supplied again. Use
+	 *                            {@link ldes.client.treenodesupplier.filters.ExactlyOnceFilter}
+	 *                            for a bound-free guarantee.
+	 */
+	public TreeNodeProcessor(LdesMetaData ldesMetaData, LdesClientRepositories ldesClientRepositories,
+	                         RequestExecutor requestExecutor, TimestampExtractor timestampExtractor,
+	                         Consumer<ClientStatus> clientStatusConsumer, int rememberedMemberIds) {
+		this.seenMemberIds = boundedIdSet(rememberedMemberIds);
 		this.treeNodeRecordRepository = ldesClientRepositories.treeNodeRecordRepository();
 		this.memberRepository = ldesClientRepositories.memberRepository();
 		this.responseReuseOwner = requestExecutor;
@@ -244,8 +271,41 @@ public class TreeNodeProcessor {
 		}
 	}
 
+	/**
+	 * Makes the record of which members have already been supplied durable,
+	 * keeping the state so a later run resumes where this one stopped.
+	 */
+	public void flushState() {
+		memberRepository.flush();
+	}
+
 	public void destroyState() {
 		memberRepository.destroyState();
 		treeNodeRecordRepository.destroyState();
+	}
+
+	private static Set<String> boundedIdSet(int maximumSize) {
+		if (maximumSize < 1) {
+			throw new IllegalArgumentException(
+					"At least one member id has to be remembered, but got " + maximumSize);
+		}
+		return Collections.synchronizedSet(Collections.newSetFromMap(new BoundedIdMap(maximumSize)));
+	}
+
+	/**
+	 * Holds a bounded number of member ids, forgetting the oldest first.
+	 */
+	private static final class BoundedIdMap extends LinkedHashMap<String, Boolean> {
+		private static final long serialVersionUID = 1L;
+		private final int maximumSize;
+
+		private BoundedIdMap(int maximumSize) {
+			this.maximumSize = maximumSize;
+		}
+
+		@Override
+		protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+			return size() > maximumSize;
+		}
 	}
 }

@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 		@Index(name = "idx_members_member_id", columnList = "memberId")
 })
 @NamedQuery(name = "Member.getAllOrderedByCreation", query = "SELECT m FROM MemberRecordEntity m ORDER BY m.createdAt")
-@NamedQuery(name = "Member.deleteByMemberId", query = "DELETE FROM MemberRecordEntity WHERE memberId = :memberId")
+@NamedQuery(name = "Member.deleteByMemberIds", query = "DELETE FROM MemberRecordEntity WHERE memberId IN (:memberIds)")
 public class MemberRecordEntity {
 
 	@Id

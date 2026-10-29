@@ -29,4 +29,18 @@ public interface MemberRepository {
 	 * Clean up the repository when it is not used anymore
 	 */
 	void destroyState();
+
+	/**
+	 * Makes the record of which members have already been supplied durable,
+	 * without discarding the state.
+	 * <p>
+	 * An implementation may batch the removal of supplied members instead of
+	 * removing each one on its own. Calling this before shutting down keeps a
+	 * later run from supplying those members a second time; ending the process
+	 * without it leaves them to be supplied again.
+	 */
+	default void flush() {
+		// Implementations that remove every supplied member immediately have
+		// nothing outstanding to make durable.
+	}
 }
