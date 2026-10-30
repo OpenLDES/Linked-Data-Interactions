@@ -22,10 +22,10 @@
 
     <developers>
         <developer>
-            <name>Yalz</name>
-            <email>Yalz@users.noreply.github.com</email>
-            <organization>Cegeka</organization>
-            <organizationUrl>http://www.sonatype.com</organizationUrl>
+            <name>Summm1t</name>
+            <email>Summm1t@users.noreply.github.com</email>
+            <organization>OpenLDES</organization>
+            <organizationUrl>http://www.openldes.org</organizationUrl>
         </developer>
     </developers>
 
@@ -113,6 +113,7 @@
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <sonar.organization>openldes</sonar.organization>
         <sonar.projectKey>openldes_Linked-Data-Interactions-${project.groupId}:${project.artifactId}</sonar.projectKey>
+        <central-publishing-maven-plugin.version>0.12.0</central-publishing-maven-plugin.version>
     </properties>
 
     <build>
@@ -435,16 +436,14 @@
                             </execution>
                         </executions>
                     </plugin>
-
                     <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>${nexus-staging-maven-plugin.version}</version>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central-publishing-maven-plugin.version}</version>
                         <extensions>true</extensions>
                         <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://s01.oss.sonatype.org</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -462,11 +461,11 @@
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+            <url>https://ossrh-staging-api.central.sonatype.com/content/repositories/snapshots</url>
         </snapshotRepository>
         <repository>
             <id>ossrh</id>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <url>https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
 </project>
