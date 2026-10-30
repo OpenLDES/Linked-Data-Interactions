@@ -75,7 +75,7 @@ jobs:
         run: mvn -B verify
       - name: Publish package
         if: ${{ fromJSON(env.DEPLOY_PACKAGE_TO_OSSRH || 'false') == true }}
-        run: mvn -B deploy -DskipTests -P release
+        run: mvn -B deploy -DskipTests -Dmaven.javadoc.skip=true -P release
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
