@@ -11,8 +11,10 @@ public class LdioHttpSparqlOutProperties {
 	public static final String REPLACEMENT_DEPTH = "replacement.depth";
 	public static final String REPLACEMENT_ENABLED = "replacement.enabled";
 	public static final String REPLACEMENT_DELETE_FUNCTION = "replacement.deleteFunction";
+	public static final String CONTINUE_ON_FAIL = "continueOnFail";
 	public static final boolean DEFAULT_REPLACEMENT_ENABLED = true;
 	public static final int DEFAULT_REPLACEMENT_DEPTH = 10;
+	public static final boolean DEFAULT_CONTINUE_ON_FAIL = true;
 
 	private final ComponentProperties componentProperties;
 
@@ -46,6 +48,12 @@ public class LdioHttpSparqlOutProperties {
 
 	public Optional<String> getReplacementDeleteFunction() {
 		return componentProperties.getOptionalProperty(REPLACEMENT_DELETE_FUNCTION);
+	}
+
+	public boolean isContinueOnFail() {
+		return componentProperties
+				.getOptionalBoolean(CONTINUE_ON_FAIL)
+				.orElse(DEFAULT_CONTINUE_ON_FAIL);
 	}
 
 

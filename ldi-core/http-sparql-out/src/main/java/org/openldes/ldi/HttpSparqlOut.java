@@ -44,9 +44,8 @@ public class HttpSparqlOut {
 			if (response.isSuccess()) {
 				log.debug("{} {} {}", request.getMethod(), request.getUrl(), response.getHttpStatus());
 			} else {
-				final String message = "Failed to post model. The request url was %s. The http response obtained from the server has code %s and body \"%s\"."
-						.formatted(response.getRequestedUrl(), response.getHttpStatus(), response.getBodyAsString().orElse(null));
-				throw new WriteActionFailedException(message);
+				throw new WriteActionFailedException(response.getRequestedUrl(), response.getHttpStatus(),
+						response.getBodyAsString().orElse(null));
 			}
 		}
 	}

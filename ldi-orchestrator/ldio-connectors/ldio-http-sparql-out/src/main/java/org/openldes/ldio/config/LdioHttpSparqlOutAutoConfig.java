@@ -49,7 +49,7 @@ public class LdioHttpSparqlOutAutoConfig {
 			final SparqlQuery sparqlQuery = new SparqlQuery(insertFunction, deleteFunction);
 			final HttpSparqlOut httpSparqlOut = new HttpSparqlOut(httpSparqlOutProperties.getEndpoint(), sparqlQuery, skolemizer, requestExecutor);
 
-			return new LdioHttpSparqlOut(httpSparqlOut);
+			return new LdioHttpSparqlOut(httpSparqlOut, httpSparqlOutProperties.isContinueOnFail());
 		}
 
 		private static DeleteFunction createDeleteFunction(LdioHttpSparqlOutProperties properties) {

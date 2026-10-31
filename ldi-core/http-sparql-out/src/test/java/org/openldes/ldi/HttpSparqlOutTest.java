@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -72,7 +73,13 @@ class HttpSparqlOutTest {
 
 		assertThatThrownBy(() -> httpSparqlOut.write(model))
 				.isExactlyInstanceOf(WriteActionFailedException.class)
-				.hasMessage("Failed to post model. The request url was %s. The http response obtained from the server has code %s and body \"%s\".".formatted(ENDPOINT, 400, "error"));
+				.hasMessage("Failed to post model. The request url was %s. The http response obtained from the server has code %s and body \"%s\".".formatted(ENDPOINT, 400, "error"))
+				.satisfies(e -> {
+					final WriteActionFailedException exception = (WriteActionFailedException) e;
+					assertThat(exception.getEndpoint()).isEqualTo(ENDPOINT);
+					assertThat(exception.getHttpStatusCode()).isEqualTo(400);
+					assertThat(exception.getResponseBody()).isEqualTo("error");
+				});
 		verify(sparqlQuery).getQueryForModel(model);
 		verify(skolemizer).skolemize(model);
 		verify(requestExecutor).execute(any());
