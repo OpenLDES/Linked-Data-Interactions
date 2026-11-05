@@ -6,12 +6,12 @@ import org.apache.jena.riot.RDFParserBuilder;
 
 import java.util.stream.Stream;
 
-import static org.apache.jena.riot.RDFLanguages.nameToLang;
+import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 
 public class DummyAdapt implements LdiAdapter {
 	@Override
 	public Stream<Model> apply(Content input) {
 		return Stream.of(
-				RDFParserBuilder.create().fromString(input.content()).lang(nameToLang(input.mimeType())).toModel());
+				RDFParserBuilder.create().fromString(input.content()).lang(contentTypeToLang(input.mimeType())).toModel());
 	}
 }

@@ -47,7 +47,7 @@ class ArchiveFileInProcessorTest {
 	private void assertModel(String resultModelString, String relativeFilePath) {
 		Path path = Paths.get(separatorsToSystem(archiveDir + "/" + relativeFilePath));
 		Model expectedModel = RDFParser.source(path).toModel();
-		Model actualModel = RDFParser.fromString(resultModelString).lang(Lang.NQUADS).toModel();
+		Model actualModel = RDFParser.fromString(resultModelString, Lang.NQUADS).toModel();
 		assertTrue(expectedModel.isIsomorphicWith(actualModel));
 	}
 

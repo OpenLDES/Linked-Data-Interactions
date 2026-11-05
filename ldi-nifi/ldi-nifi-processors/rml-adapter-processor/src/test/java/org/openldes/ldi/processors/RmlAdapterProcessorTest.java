@@ -70,7 +70,7 @@ class RmlAdapterProcessorTest {
 		testRunner.run();
 
 		final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(SUCCESS);
-		final Model result = RDFParser.fromString(flowFiles.getFirst().getContent()).lang(DESTINATION_FORMAT).toModel();
+		final Model result = RDFParser.fromString(flowFiles.getFirst().getContent(), DESTINATION_FORMAT).toModel();
 
 		testRunner.assertQueueEmpty();
 		assertThat(flowFiles).hasSize(1);

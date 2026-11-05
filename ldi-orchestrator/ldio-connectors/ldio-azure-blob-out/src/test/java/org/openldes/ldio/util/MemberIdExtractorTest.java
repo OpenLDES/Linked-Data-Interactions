@@ -22,7 +22,7 @@ class MemberIdExtractorTest {
 
 	@Test
 	void when_ModelContainsMember_then_MemberIdIsExtracted() throws IOException, URISyntaxException {
-		Model model = RDFParser.fromString(readFile("original.jsonld")).lang(Lang.JSONLD11).toModel();
+		Model model = RDFParser.fromString(readFile("original.jsonld"), Lang.JSONLD11).toModel();
 
 		String memberId = memberIdExtractor.extractMemberId(model);
 
@@ -31,7 +31,7 @@ class MemberIdExtractorTest {
 
 	@Test
 	void when_ModelNotContainsMember_then_MemberIdNotFoundExceptionIsThrown() throws IOException, URISyntaxException {
-		Model model = RDFParser.fromString(readFile("original-without-member.jsonld")).lang(Lang.JSONLD11).toModel();
+		Model model = RDFParser.fromString(readFile("original-without-member.jsonld"), Lang.JSONLD11).toModel();
 
 		assertThrows(MemberIdNotFoundException.class,
 				() -> memberIdExtractor.extractMemberId(model));

@@ -10,8 +10,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.sql.SQLException;
 import java.time.OffsetDateTime;
-import lombok.SneakyThrows;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.RDFParser;
@@ -58,8 +58,7 @@ class LdioRdbOutTest {
   private PlatformTransactionManager transactionManagerMock;
 
   @BeforeEach
-  @SneakyThrows
-  void setUp() {
+  void setUp() throws SQLException {
     SparqlSelectService sparqlSelectService = new SparqlSelectService(new ValueConverter());
     transactionTemplate.setTransactionManager(transactionManagerMock);
     StatementCreationService statementCreationService = new StatementCreationService();

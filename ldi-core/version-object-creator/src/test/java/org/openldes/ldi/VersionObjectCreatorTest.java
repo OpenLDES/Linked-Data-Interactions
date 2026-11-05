@@ -75,7 +75,7 @@ class VersionObjectCreatorTest {
 				ex:member
 				  a ex:Something ;
 				  ex:foo "bar mitswa".
-				""").lang(Lang.TTL).toModel();
+				""", Lang.TTL).toModel();
 
 		String expectedId = "http://example.org/member/";
 
@@ -111,7 +111,7 @@ class VersionObjectCreatorTest {
 				    a time:Instant ;
 				    time:inXSDDateTimeStamp "2023-08-18T13:08:00+01:00"^^xsd:DateTime
 				  ] .
-				""").lang(Lang.TTL).toModel();
+				""", Lang.TTL).toModel();
 
 		VersionObjectCreator versionObjectCreator = createVersionObjectCreator(
 				inputModel,
@@ -186,7 +186,7 @@ class VersionObjectCreatorTest {
 				    	    a time:Instant ;
 				    	    time:inXSDDateTimeStamp "2023-08-18T13:08:00+01:00"^^xsd:DateTime
 				  	] .
-				""").lang(Lang.TTL).toModel();
+				""", Lang.TTL).toModel();
 
 		VersionObjectCreator versionObjectCreator = createVersionObjectCreator(
 				inputModel,
@@ -208,7 +208,7 @@ class VersionObjectCreatorTest {
 
 				ex:member
 				  a ex:Something .
-				""").lang(Lang.TTL).toModel();
+				""", Lang.TTL).toModel();
 
 		VersionObjectCreator versionObjectCreator = createVersionObjectCreator(
 				inputModel,

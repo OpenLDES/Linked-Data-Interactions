@@ -21,7 +21,7 @@ class Model2JsonConverterTest {
 
 	@Test
 	void when_ModelIsConverted_then_JsonSerializedStringIsReturned() throws IOException, URISyntaxException {
-		Model model = RDFParser.fromString(readFile("original.jsonld")).lang(Lang.JSONLD11).toModel();
+		Model model = RDFParser.fromString(readFile("original.jsonld"), Lang.JSONLD11).toModel();
 		String expectedJson = readFile("expected.json");
 
 		String actualJson = model2JsonConverter.modelToJSONLD(model);

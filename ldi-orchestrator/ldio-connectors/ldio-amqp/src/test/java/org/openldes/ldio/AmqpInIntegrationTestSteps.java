@@ -84,7 +84,7 @@ public class AmqpInIntegrationTestSteps extends AmqpIntegrationTest {
 	@And("^I send a model from (.*) and (.*) to broker using the amqp producer")
 	public void iSendAModelFromContentAndContentTypeToBrokerUsingTheAMQPProducer(String modelString, String contentType) throws JMSException {
 		this.contentType = contentType;
-		this.inputModel = RDFParser.fromString(modelString).lang(contentTypeToLang(contentType)).toModel();
+		this.inputModel = RDFParser.fromString(modelString, contentTypeToLang(contentType)).toModel();
 
 		final String value = RDFWriter.source(inputModel).lang(contentTypeToLang(contentType)).build().asString();
 
@@ -93,7 +93,7 @@ public class AmqpInIntegrationTestSteps extends AmqpIntegrationTest {
 
 	private Model toModel(LdiAdapter.Content content) {
 		return RDFParserBuilder.create()
-				.fromString(content.content()).lang(nameToLang(content.mimeType())).toModel();
+				.fromString(content.content()).lang(contentTypeToLang(content.mimeType())).toModel();
 	}
 
 	@And("^I create default config for LdioJmsIn with (.*)")
@@ -119,7 +119,7 @@ public class AmqpInIntegrationTestSteps extends AmqpIntegrationTest {
 
 	@And("The result value will contain the model")
 	public void theResultValueWillContainTheModel() {
-		Model resultModel = RDFParser.fromString(adapterResult.getFirst().content()).lang(contentTypeToLang(contentType))
+		Model resultModel = RDFParser.fromString(adapterResult.getFirst().content(), contentTypeToLang(contentType))
 				.build().toModel();
 		assertTrue(resultModel.isIsomorphicWith(inputModel));
 	}

@@ -75,7 +75,8 @@
         <hikari.version>5.0.1</hikari.version>
         <postgresql.version>42.7.7</postgresql.version>
 
-        <jena.version>5.1.0</jena.version>
+        <jena.version>6.2.0</jena.version>
+        <commons-lang3.version>3.20.0</commons-lang3.version>
         <sis-embedded-db.version>1.4</sis-embedded-db.version>
         <xml-bind.version>4.0.1</xml-bind.version>
         <jackson.version>2.15.3</jackson.version>
@@ -94,7 +95,7 @@
         <junit-platform-suite.version>1.10.2</junit-platform-suite.version>
         <junit-jupiter.version>5.10.2</junit-jupiter.version>
         <awaitility.version>4.2.2</awaitility.version>
-        <byte-buddy.version>1.14.12</byte-buddy.version>
+        <byte-buddy.version>1.18.17</byte-buddy.version>
         <wiremock-jre8.version>2.35.1</wiremock-jre8.version>
         <mockito-core.version>5.14.2</mockito-core.version>
         <mockito-junit.version>5.14.2</mockito-junit.version>
@@ -230,6 +231,11 @@
                 <groupId>org.apache.jena</groupId>
                 <artifactId>jena-arq</artifactId>
                 <version>${jena.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang3.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.setl</groupId>

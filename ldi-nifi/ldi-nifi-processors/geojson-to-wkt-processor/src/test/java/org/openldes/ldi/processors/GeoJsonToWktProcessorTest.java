@@ -50,7 +50,7 @@ class GeoJsonToWktProcessorTest {
 		testRunner.run();
 
 		MockFlowFile result = testRunner.getFlowFilesForRelationship(SUCCESS).getFirst();
-		Model resultModel = RDFParser.fromString(result.getContent()).lang(Lang.JSONLD).build().toModel();
+		Model resultModel = RDFParser.fromString(result.getContent(), Lang.JSONLD).build().toModel();
 		Model expectedModel = RDFParser.source(expectedSourceFile).lang(Lang.JSONLD).build().toModel();
 		assertTrue(expectedModel.isIsomorphicWith(resultModel));
 	}

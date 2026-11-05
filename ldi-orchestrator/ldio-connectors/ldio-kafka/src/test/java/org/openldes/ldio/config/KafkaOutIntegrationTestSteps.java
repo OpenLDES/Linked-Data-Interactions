@@ -97,13 +97,13 @@ public class KafkaOutIntegrationTestSteps extends KafkaIntegrationTest  {
 
 	@And("The mock listener result value will contain the model")
 	public void theResultValueWillContainTheModel() {
-		Model resultModel = RDFParser.fromString(result.get(0).value()).lang(contentType).build().toModel();
+		Model resultModel = RDFParser.fromString(result.get(0).value(), contentType).build().toModel();
 		assertTrue(resultModel.isIsomorphicWith(inputModel));
 	}
 
 	@And("I add an n-quad to the model: {string}")
 	public void iAddATripleToTheModel(String triple) {
-		inputModel.add(RDFParser.fromString(triple).lang(Lang.NQUADS).toModel());
+		inputModel.add(RDFParser.fromString(triple, Lang.NQUADS).toModel());
 	}
 
 	@And("The result key will be {string}")

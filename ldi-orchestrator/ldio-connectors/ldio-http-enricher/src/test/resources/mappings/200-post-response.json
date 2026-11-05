@@ -21,6 +21,9 @@
   },
   "response": {
     "status": 200,
+    "headers": {
+      "Content-Type": "application/n-triples"
+    },
     "body": "<http://example.org/John> <http://example.org/hasWife> <http://example.org/Hillary> ."
   }
 }

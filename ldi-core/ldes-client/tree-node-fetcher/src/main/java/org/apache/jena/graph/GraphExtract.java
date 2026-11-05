@@ -41,7 +41,7 @@ public class GraphExtract {
 	 TripleBoundary passed to the constructor.
 	 */
 	public Graph extract(Node node, Graph graph) {
-		return extractInto(GraphMemFactory.createGraphMem(), node, graph);
+		return extractInto(GraphMemFactory.createDefaultGraph(), node, graph);
 	}
 
 	/**

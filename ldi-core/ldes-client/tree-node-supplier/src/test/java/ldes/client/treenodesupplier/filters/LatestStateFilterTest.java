@@ -96,7 +96,7 @@ class LatestStateFilterTest {
 				        terms:isVersionOf             <https://data.vlaanderen.be/id/perceel/13374D0779-00D003>;
 				        prov:generatedAtTime          "2022-12-29T11:37:27+01:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
 				""";
-		return RDFParser.fromString(modelTemplate).lang(Lang.TTL).toModel();
+		return RDFParser.fromString(modelTemplate, Lang.TTL).toModel();
 	}
 
 }

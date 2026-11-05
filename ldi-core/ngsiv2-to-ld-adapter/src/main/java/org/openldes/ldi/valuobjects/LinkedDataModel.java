@@ -89,8 +89,7 @@ public class LinkedDataModel extends LinkedDataAttributeBase {
 
 	public Model toRDFModel() {
 		Model model = ModelFactory.createDefaultModel();
-		RDFParser.fromString(toString())
-				.lang(Lang.JSONLD)
+		RDFParser.fromString(toString(), Lang.JSONLD)
 				.context(jenaContext)
 				.parse(model);
 		return model;

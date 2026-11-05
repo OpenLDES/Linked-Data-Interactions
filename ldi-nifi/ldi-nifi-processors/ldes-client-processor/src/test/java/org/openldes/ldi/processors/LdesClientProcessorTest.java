@@ -101,8 +101,7 @@ class LdesClientProcessorTest {
 
 		assertEquals(1, dataFlowfiles.size());
 		List<RDFNode> result = RDFParser
-				.fromString(dataFlowfiles.getFirst().getContent())
-				.lang(Lang.NQUADS)
+				.fromString(dataFlowfiles.getFirst().getContent(), Lang.NQUADS)
 				.toModel()
 				.listObjectsOfProperty(createProperty(VERSION_OF))
 				.toList();
@@ -206,8 +205,7 @@ class LdesClientProcessorTest {
 		assertEquals(1, dataFlowfiles.size());
 
 		List<RDFNode> result = RDFParser
-				.fromString(dataFlowfiles.getFirst().getContent())
-				.lang(Lang.NQUADS)
+				.fromString(dataFlowfiles.getFirst().getContent(), Lang.NQUADS)
 				.toModel()
 				.listObjectsOfProperty(createProperty("http://purl.org/dc/terms/isVersionOf"))
 				.toList();
@@ -270,8 +268,7 @@ class LdesClientProcessorTest {
 		assertEquals(3, dataFlowfiles.size());
 
 		List<RDFNode> result = RDFParser
-				.fromString(dataFlowfiles.getFirst().getContent())
-				.lang(Lang.NQUADS)
+				.fromString(dataFlowfiles.getFirst().getContent(), Lang.NQUADS)
 				.toModel()
 				.listObjectsOfProperty(createProperty("http://purl.org/dc/terms/isVersionOf"))
 				.toList();
@@ -295,8 +292,7 @@ class LdesClientProcessorTest {
 		assertEquals(4, dataFlowfiles.size());
 
 		List<RDFNode> result = RDFParser
-				.fromString(dataFlowfiles.getFirst().getContent())
-				.lang(Lang.NQUADS)
+				.fromString(dataFlowfiles.getFirst().getContent(), Lang.NQUADS)
 				.toModel()
 				.listObjectsOfProperty(createProperty("http://purl.org/dc/terms/isVersionOf"))
 				.toList();
@@ -322,8 +318,7 @@ class LdesClientProcessorTest {
 		assertEquals(2, dataFlowfiles.size());
 
 		List<RDFNode> result = RDFParser
-				.fromString(dataFlowfiles.getFirst().getContent())
-				.lang(Lang.NQUADS)
+				.fromString(dataFlowfiles.getFirst().getContent(), Lang.NQUADS)
 				.toModel()
 				.listObjectsOfProperty(createProperty("http://purl.org/dc/terms/isVersionOf"))
 				.toList();
@@ -349,8 +344,7 @@ class LdesClientProcessorTest {
 		assertEquals(1, dataFlowfiles.size());
 
 		List<RDFNode> result = RDFParser
-				.fromString(dataFlowfiles.getFirst().getContent())
-				.lang(Lang.NQUADS)
+				.fromString(dataFlowfiles.getFirst().getContent(), Lang.NQUADS)
 				.toModel()
 				.listObjectsOfProperty(createProperty("http://purl.org/dc/terms/isVersionOf"))
 				.toList();

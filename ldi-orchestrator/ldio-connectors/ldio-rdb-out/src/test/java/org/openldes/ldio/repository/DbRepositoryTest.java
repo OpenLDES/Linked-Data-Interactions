@@ -6,8 +6,8 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.sql.SQLException;
 import java.util.List;
-import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,8 +36,7 @@ class DbRepositoryTest {
   private StatementCreationService statementCreationService;
 
   @BeforeEach
-  @SneakyThrows
-  void setUp() {
+  void setUp() throws SQLException {
     transactionTemplate = new TransactionTemplate(transactionManagerMock);
     lenient().when(jdbcTemplateMock.getDataSource()).thenReturn(mock(javax.sql.DataSource.class));
     lenient().when(jdbcTemplateMock.getDataSource().getConnection()).thenReturn(mock(java.sql.Connection.class));

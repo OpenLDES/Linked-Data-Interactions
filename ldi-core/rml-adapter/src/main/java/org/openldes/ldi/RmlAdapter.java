@@ -11,14 +11,19 @@ import io.carml.logicalsourceresolver.XPathResolver;
 import io.carml.model.TriplesMap;
 import io.carml.util.RmlMappingLoader;
 import io.carml.util.jena.JenaCollectors;
-import io.carml.util.jena.JenaConverters;
 import io.carml.vocab.Rdf;
 import org.apache.commons.io.IOUtils;
+import org.apache.jena.datatypes.TypeMapper;
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.sparql.core.Quad;
+import org.eclipse.rdf4j.model.Literal;
 import org.eclipse.rdf4j.model.Resource;
+import org.eclipse.rdf4j.model.Value;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.model.util.ModelCollector;
@@ -59,7 +64,7 @@ public class RmlAdapter implements LdiAdapter {
 	public Stream<Model> apply(Content content) {
 		Dataset dataset = Objects.requireNonNull(rmlMapper.map(IOUtils.toInputStream(content.content(), StandardCharsets.UTF_8))
 						.collect(ModelCollector.toModel()).share().block())
-				.stream().map(JenaConverters::toQuad)
+				.stream().map(RmlAdapter::toQuad)
 				.collect(JenaCollectors.toDataset());
 
 		if (!dataset.listNames().hasNext()) {
@@ -69,6 +74,34 @@ public class RmlAdapter implements LdiAdapter {
 					.map(dataset::getNamedModel)
 					.map(model -> enrichModel(model, dataset));
 		}
+	}
+
+	private static Quad toQuad(org.eclipse.rdf4j.model.Statement statement) {
+		var context = statement.getContext();
+		return Quad.create(context == null ? Quad.defaultGraphIRI : toNode(context),
+				toNode(statement.getSubject()), toNode(statement.getPredicate()), toNode(statement.getObject()));
+	}
+
+	private static Node toNode(Value value) {
+		if (value.isIRI()) {
+			return NodeFactory.createURI(value.stringValue());
+		}
+		if (value.isBNode()) {
+			return NodeFactory.createBlankNode(((org.eclipse.rdf4j.model.BNode) value).getID());
+		}
+		if (value.isLiteral()) {
+			Literal literal = (Literal) value;
+			return literal.getLanguage()
+					.map(language -> NodeFactory.createLiteralLang(literal.stringValue(), language))
+					.orElseGet(() -> NodeFactory.createLiteralDT(literal.stringValue(),
+							TypeMapper.getInstance().getSafeTypeByName(literal.getDatatype().stringValue())));
+		}
+		if (value.isTriple()) {
+			var triple = (org.eclipse.rdf4j.model.Triple) value;
+			return NodeFactory.createTripleTerm(org.apache.jena.graph.Triple.create(
+					toNode(triple.getSubject()), toNode(triple.getPredicate()), toNode(triple.getObject())));
+		}
+		throw new IllegalArgumentException("Unsupported RDF value type: " + value.getClass());
 	}
 
 	private org.eclipse.rdf4j.model.Model convertToCarmlMappingModel(String mappingString) throws IOException {

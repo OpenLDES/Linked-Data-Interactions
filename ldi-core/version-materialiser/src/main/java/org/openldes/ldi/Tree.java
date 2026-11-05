@@ -1,7 +1,6 @@
 package org.openldes.ldi;
 
-import org.apache.jena.iri.IRI;
-import org.apache.jena.iri.IRIFactory;
+import org.apache.jena.irix.IRIx;
 
 /**
  * Tree spec constants
@@ -16,5 +15,5 @@ public class Tree {
 	 */
 	public static final String PREFIX = "tree";
 
-	public static final IRI MEMBER = IRIFactory.iriImplementation().construct(NAMESPACE + "member");
+	public static final IRIx MEMBER = IRIx.create(NAMESPACE + "member");
 }
