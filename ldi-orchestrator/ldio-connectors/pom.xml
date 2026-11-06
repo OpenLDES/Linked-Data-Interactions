@@ -117,6 +117,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>${maven-assembly-plugin.version}</version>
                 <configuration>
+                    <attach>false</attach>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>

@@ -74,7 +74,7 @@ jobs:
         if: ${{ fromJSON(env.ANALYSE_PACKAGE || 'false') != true }}
         run: mvn -B verify
       - name: Publish package
-        if: ${{ fromJSON(env.DEPLOY_PACKAGE_TO_OSSRH || 'false') == true }}
+        if: ${{ fromJSON(env.DEPLOY_PACKAGE_TO_OSSRH || 'false') == true && github.ref_name == 'main' && !endsWith(steps.determine-version.outputs.version, '-SNAPSHOT') }}
         run: mvn -B deploy -DskipTests -P release
         env:
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
