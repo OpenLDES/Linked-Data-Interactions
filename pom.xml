@@ -444,6 +444,9 @@
                         <configuration>
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>true</autoPublish>
+                            <excludeArtifacts>
+                                <excludeArtifact>ldi-processors-bundle</excludeArtifact>
+                            </excludeArtifacts>
                         </configuration>
                     </plugin>
                 </plugins>

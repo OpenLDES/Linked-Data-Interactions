@@ -24,6 +24,9 @@ publication; both default to disabled when unset.
 Maven publication configures the `central` and `snapshots` server IDs with Central Portal user-token
 credentials. Ordinary verification does not sign artifacts; signing runs only with the `release`
 profile during publication, using `MAVEN_GPG_PASSPHRASE` for non-interactive signing.
+The assembled NiFi `ldi-processors-bundle` is not published to Central because it repackages the
+individual NAR artifacts and makes the combined upload exceed the Portal's request limit; the
+individual NiFi processor artifacts are still published.
 Docker Hub publication requires `DOCKER_USER` and `DOCKER_PASSWORD`; GHCR uses `GITHUB_TOKEN` with
 package write permission.
 Snapshot promotion requires the repository setting that allows GitHub Actions to create pull
