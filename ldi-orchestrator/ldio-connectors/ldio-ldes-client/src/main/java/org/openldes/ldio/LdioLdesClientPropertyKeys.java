@@ -11,6 +11,7 @@ public class LdioLdesClientPropertyKeys {
 	public static final String SOURCE_FORMAT = "source-format";
 	public static final Lang DEFAULT_SOURCE_FORMAT = Lang.TURTLE;
 
+	public static final String ORDERED = "ordered";
 	public static final String USE_EXACTLY_ONCE_FILTER = "enable-exactly-once";
 
 	// version materialisation properties

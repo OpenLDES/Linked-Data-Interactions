@@ -1,10 +1,21 @@
 package ldes.client.eventstreamproperties.valueobjects;
 
+import org.apache.jena.query.Dataset;
+import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.vocabulary.RDF;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 
@@ -13,35 +24,305 @@ public class ViewSpecification implements StartingNodeSpecification {
 	public static final Property LDES_EVENT_STREAM = createProperty(LDES, "EventStream");
 	public static final String RDF_SYNTAX = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 	public static final Property RDF_SYNTAX_TYPE = createProperty(RDF_SYNTAX, "type");
-	public static final Property TREE_SHAPE = createProperty("https://w3id.org/tree#", "shape");
+	public static final String TREE = "https://w3id.org/tree#";
+	public static final Property TREE_SHAPE = createProperty(TREE, "shape");
+	public static final Property TREE_VIEW = createProperty(TREE, "view");
+	public static final Property TREE_VIEW_DESCRIPTION = createProperty(TREE, "viewDescription");
 	public static final Property LDES_VERSION_OF_PATH = createProperty(LDES, "versionOfPath");
 	public static final Property LDES_TIMESTAMP_PATH = createProperty(LDES, "timestampPath");
+	public static final Property LDES_SEQUENCE_PATH = createProperty(LDES, "sequencePath");
+	public static final Property LDES_TRANSACTION_PATH = createProperty(LDES, "transactionPath");
+	public static final Property LDES_TRANSACTION_FINALIZED_PATH = createProperty(LDES, "transactionFinalizedPath");
+	public static final Property LDES_TRANSACTION_FINALIZED_OBJECT = createProperty(LDES, "transactionFinalizedObject");
+	public static final Property LDES_VERSION_TIMESTAMP_PATH = createProperty(LDES, "versionTimestampPath");
+	public static final Property LDES_VERSION_SEQUENCE_PATH = createProperty(LDES, "versionSequencePath");
+	public static final Property LDES_POLLING_INTERVAL = createProperty(LDES, "pollingInterval");
+	public static final Property LDES_RETENTION_POLICY = createProperty(LDES, "retentionPolicy");
 
 	private final Model model;
+	private final Dataset dataset;
+	private final String currentPageUrl;
+	private final String discoveryUrl;
 
 	public ViewSpecification(Model model) {
-		this.model = model;
+		this(DatasetFactory.create(model));
+	}
+
+	public ViewSpecification(Dataset dataset) {
+		this(dataset, null);
+	}
+
+	public ViewSpecification(Dataset dataset, String requestUrl) {
+		this(dataset, requestUrl, requestUrl);
+	}
+
+	/**
+	 * @param currentPageUrl the URL the response was actually served from, after
+	 *                       any redirect. A view that names this page describes
+	 *                       the page being read and takes precedence.
+	 * @param discoveryUrl   the URL that was originally supplied. It is only
+	 *                       consulted when no view names the current page, so
+	 *                       metadata about a superseded IRI cannot redirect
+	 *                       discovery to another stream.
+	 */
+	public ViewSpecification(Dataset dataset, String currentPageUrl, String discoveryUrl) {
+		this.dataset = dataset;
+		this.model = dataset.getDefaultModel();
+		this.currentPageUrl = currentPageUrl;
+		this.discoveryUrl = discoveryUrl;
 	}
 
 	@Override
 	public EventStreamProperties extractEventStreamProperties() {
-		final Resource subject = extractEventStream(model).orElseThrow();
-		final String shapeUri = Optional.ofNullable(subject.getPropertyResourceValue(TREE_SHAPE))
-				.map(Resource::getURI)
-				.orElse("");
-		return new EventStreamProperties(
-				subject.getURI(),
-				subject.getPropertyResourceValue(LDES_VERSION_OF_PATH).getURI(),
-				subject.getPropertyResourceValue(LDES_TIMESTAMP_PATH).getURI(),
-				shapeUri
-		);
+		final Resource subject = extractEventStream().orElseThrow();
+		final String eventStreamUri = requireUri(subject, "event stream");
+		final String rootNode = extractRootNode(subject)
+				.orElseGet(() -> currentPageUrl == null ? eventStreamUri : currentPageUrl);
+		final List<String> viewDescriptions = resources(rootNode, TREE_VIEW_DESCRIPTION);
+		final List<String> retentionPolicies = retentionPolicies(rootNode);
+		return EventStreamProperties.builder(eventStreamUri)
+				.rootNode(rootNode)
+				.versionOfPath(resourceUri(subject, LDES_VERSION_OF_PATH).orElse(null))
+				.timestampPath(resourceUri(subject, LDES_TIMESTAMP_PATH).orElse(null))
+				.sequencePath(propertyPath(subject, LDES_SEQUENCE_PATH))
+				.transactionPath(resourceUri(subject, LDES_TRANSACTION_PATH).orElse(null))
+				.transactionFinalizedPath(resourceUri(subject, LDES_TRANSACTION_FINALIZED_PATH).orElse(null))
+				.transactionFinalizedObject(object(subject, LDES_TRANSACTION_FINALIZED_OBJECT).orElse(null))
+				.versionTimestampPath(resourceUri(subject, LDES_VERSION_TIMESTAMP_PATH).orElse(null))
+				.versionSequencePath(resourceUri(subject, LDES_VERSION_SEQUENCE_PATH).orElse(null))
+				.pollingInterval(integerValue(subject, LDES_POLLING_INTERVAL).orElse(null))
+				.shaclShapeUris(resources(subject, TREE_SHAPE))
+				.viewDescriptions(viewDescriptions)
+				.retentionPolicies(retentionPolicies)
+				.emptyRetentionPolicies(emptyRetentionPolicies(retentionPolicies))
+				.contextDataset(dataset)
+				.build();
 	}
 
 	public static boolean isViewSpecification(Model model) {
 		return extractEventStream(model).isPresent();
 	}
 
+	public static boolean isViewSpecificationCandidate(Model model) {
+		return model.contains(null, RDF_SYNTAX_TYPE, LDES_EVENT_STREAM) || model.contains(null, TREE_VIEW);
+	}
+
 	private static Optional<Resource> extractEventStream(Model model) {
-		return model.listSubjectsWithProperty(RDF_SYNTAX_TYPE, LDES_EVENT_STREAM).nextOptional();
+		final List<Resource> typedEventStreams = typedEventStreams(model);
+		return typedEventStreams.isEmpty()
+				? selectSingle(model.listSubjectsWithProperty(TREE_VIEW).toList(), "subject with tree:view")
+				: selectSingle(typedEventStreams, "ldes:EventStream subject");
+	}
+
+	private Optional<Resource> extractEventStream() {
+		final List<Resource> candidates = eventStreamCandidates(model);
+		return selectSingle(narrowToDescribingView(candidates), "discoverable event stream");
+	}
+
+	private List<Resource> narrowToDescribingView(List<Resource> candidates) {
+		for (String url : describingUrls()) {
+			final List<Resource> matching = candidates.stream()
+					.filter(candidate -> containsMatchingView(candidate, url))
+					.toList();
+			if (!matching.isEmpty()) {
+				return matching;
+			}
+		}
+		return candidates;
+	}
+
+	private List<String> describingUrls() {
+		return Stream.of(currentPageUrl, discoveryUrl)
+				.filter(Objects::nonNull)
+				.distinct()
+				.toList();
+	}
+
+	private static List<Resource> eventStreamCandidates(Model model) {
+		final List<Resource> typedEventStreams = typedEventStreams(model);
+		return typedEventStreams.isEmpty()
+				? model.listSubjectsWithProperty(TREE_VIEW).toList()
+				: typedEventStreams;
+	}
+
+	private static List<Resource> typedEventStreams(Model model) {
+		return model.listSubjectsWithProperty(RDF_SYNTAX_TYPE, LDES_EVENT_STREAM).toList();
+	}
+
+	private static Optional<Resource> selectSingle(List<Resource> candidates, String description) {
+		if (candidates.size() > 1) {
+			throw new IllegalStateException(
+					"Expected exactly one " + description + ", found " + candidates.size());
+		}
+		return candidates.stream().findFirst();
+	}
+
+	private boolean containsMatchingView(Resource candidate, String url) {
+		return resources(candidate, TREE_VIEW).stream()
+				.anyMatch(viewUrl -> matchesUrl(viewUrl, url));
+	}
+
+	private Optional<String> extractRootNode(Resource eventStream) {
+		final List<String> viewTargets = resources(eventStream, TREE_VIEW);
+		if (viewTargets.size() < 2) {
+			return viewTargets.stream().findFirst();
+		}
+
+		for (String url : describingUrls()) {
+			final List<String> matchingViews = viewTargets.stream()
+					.filter(viewUrl -> matchesUrl(viewUrl, url))
+					.toList();
+			if (matchingViews.size() == 1) {
+				return Optional.of(matchingViews.getFirst());
+			}
+			if (matchingViews.size() > 1) {
+				throw new IllegalStateException(
+						"Expected exactly one tree:view target matching " + url
+								+ ", found " + matchingViews.size());
+			}
+		}
+		throw new IllegalStateException(
+				"Expected exactly one tree:view target matching the entrypoint, found 0");
+	}
+
+	private boolean matchesUrl(String viewUrl, String candidateUrl) {
+		if (candidateUrl == null) {
+			return false;
+		}
+
+		try {
+			final URI request = URI.create(candidateUrl).normalize();
+			final URI view = URI.create(viewUrl).normalize();
+			if (!Objects.equals(request.getScheme(), view.getScheme())
+					|| !Objects.equals(request.getAuthority(), view.getAuthority())) {
+				return false;
+			}
+			final String requestPath = Optional.ofNullable(request.getPath()).orElse("");
+			final String viewPath = Optional.ofNullable(view.getPath()).orElse("");
+			return Objects.equals(requestPath, viewPath)
+					|| requestPath.startsWith(viewPath.endsWith("/") ? viewPath : viewPath + "/");
+		} catch (IllegalArgumentException ignored) {
+			return candidateUrl.equals(viewUrl);
+		}
+	}
+
+	private static String requireUri(Resource resource, String description) {
+		if (!resource.isURIResource()) {
+			throw new IllegalStateException("Expected " + description + " to be identified by an IRI");
+		}
+		return resource.getURI();
+	}
+
+	private static Optional<String> resourceUri(Resource subject, Property property) {
+		return Optional.ofNullable(subject.getPropertyResourceValue(property))
+				.filter(RDFNode::isURIResource)
+				.map(RDFNode::asResource)
+				.map(Resource::getURI);
+	}
+
+	private static Optional<RDFNode> object(Resource subject, Property property) {
+		return Optional.ofNullable(subject.getProperty(property)).map(Statement::getObject);
+	}
+
+	private List<String> propertyPath(Resource subject, Property property) {
+		return Optional.ofNullable(subject.getProperty(property))
+				.map(Statement::getObject)
+				.map(this::propertyPath)
+				.orElse(List.of());
+	}
+
+	private List<String> propertyPath(RDFNode pathNode) {
+		if (pathNode.isURIResource()) {
+			return List.of(pathNode.asResource().getURI());
+		}
+		if (!pathNode.isResource()) {
+			return List.of();
+		}
+
+		final List<String> path = new ArrayList<>();
+		RDFNode current = pathNode;
+		while (current.isResource() && !current.asResource().equals(RDF.nil)) {
+			final Resource listNode = current.asResource();
+			final RDFNode first = Optional.ofNullable(listNode.getProperty(RDF.first))
+					.map(Statement::getObject)
+					.orElse(null);
+			if (first == null || !first.isURIResource()) {
+				return List.of();
+			}
+			path.add(first.asResource().getURI());
+			current = Optional.ofNullable(listNode.getProperty(RDF.rest))
+					.map(Statement::getObject)
+					.orElse(RDF.nil);
+		}
+		return path;
+	}
+
+	private static Optional<Integer> integerValue(Resource subject, Property property) {
+		return Optional.ofNullable(subject.getProperty(property))
+				.map(Statement::getObject)
+				.filter(RDFNode::isLiteral)
+				.map(RDFNode::asLiteral)
+				.map(Literal::getInt);
+	}
+
+	private List<String> resources(Resource subject, Property property) {
+		return model.listObjectsOfProperty(subject, property)
+				.toList()
+				.stream()
+				.filter(RDFNode::isURIResource)
+				.map(RDFNode::asResource)
+				.map(Resource::getURI)
+				.distinct()
+				.sorted()
+				.toList();
+	}
+
+	private List<String> resources(String subject, Property property) {
+		if (subject == null) {
+			return List.of();
+		}
+		return resources(model.createResource(subject), property);
+	}
+
+	/**
+	 * Collects the retention policies of a tree node, both the ones it links
+	 * directly and the ones its view descriptions link. A view description is
+	 * often a blank node with nested structure, so the view descriptions are
+	 * traversed as RDF nodes rather than through the IRI-only list that is
+	 * reported to consumers.
+	 */
+	private List<String> retentionPolicies(String rootNode) {
+		if (rootNode == null) {
+			return List.of();
+		}
+		final Resource node = model.createResource(rootNode);
+		return Stream.concat(
+						resources(node, LDES_RETENTION_POLICY).stream(),
+						viewDescriptionNodes(node).stream()
+								.flatMap(viewDescription -> resources(viewDescription, LDES_RETENTION_POLICY).stream()))
+				.distinct()
+				.sorted()
+				.toList();
+	}
+
+	private List<Resource> viewDescriptionNodes(Resource node) {
+		return model.listObjectsOfProperty(node, TREE_VIEW_DESCRIPTION)
+				.toList()
+				.stream()
+				.filter(RDFNode::isResource)
+				.map(RDFNode::asResource)
+				.distinct()
+				.toList();
+	}
+
+	/**
+	 * @return the retention policies that this page names but does not describe.
+	 * A consumer must assume that such a view retains no members, so the
+	 * distinction is reported instead of only the policy IRI.
+	 */
+	private List<String> emptyRetentionPolicies(List<String> retentionPolicies) {
+		return retentionPolicies.stream()
+				.filter(policy -> !model.contains(model.createResource(policy), null, (RDFNode) null))
+				.toList();
 	}
 }

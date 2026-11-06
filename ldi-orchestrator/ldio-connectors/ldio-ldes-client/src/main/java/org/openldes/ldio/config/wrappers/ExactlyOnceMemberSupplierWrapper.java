@@ -18,7 +18,7 @@ public class ExactlyOnceMemberSupplierWrapper extends MemberSupplierWrapper {
 
 	@Override
 	public boolean shouldBeWrapped() {
-		return properties.isExactlyOnceEnabled();
+		return properties.isExactlyOnceEnabled() && !properties.isOrderedEnabled();
 	}
 
 	@Override

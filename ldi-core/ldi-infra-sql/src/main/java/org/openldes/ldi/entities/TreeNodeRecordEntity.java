@@ -20,6 +20,7 @@ public class TreeNodeRecordEntity {
 	private String treeNodeUrl;
 	private String treeNodeStatus;
 	private LocalDateTime earliestNextVisit;
+	private String etag;
 	@Column
 	@ElementCollection(targetClass = String.class)
 	private List<String> members;
@@ -28,10 +29,15 @@ public class TreeNodeRecordEntity {
 	}
 
 	public TreeNodeRecordEntity(String treeNodeUrl, String treeNodeStatus, LocalDateTime earliestNextVisit, List<String> members) {
+		this(treeNodeUrl, treeNodeStatus, earliestNextVisit, members, null);
+	}
+
+	public TreeNodeRecordEntity(String treeNodeUrl, String treeNodeStatus, LocalDateTime earliestNextVisit, List<String> members, String etag) {
 		this.treeNodeUrl = treeNodeUrl;
 		this.treeNodeStatus = treeNodeStatus;
 		this.earliestNextVisit = earliestNextVisit;
 		this.members = members;
+		this.etag = etag;
 	}
 
 	public String getTreeNodeUrl() {
@@ -50,6 +56,10 @@ public class TreeNodeRecordEntity {
 		return members;
 	}
 
+	public String getEtag() {
+		return etag;
+	}
+
 	public void setTreeNodeUrl(String treeNodeUrl) {
 		this.treeNodeUrl = treeNodeUrl;
 	}
@@ -64,5 +74,9 @@ public class TreeNodeRecordEntity {
 
 	public void setMembers(List<String> members) {
 		this.members = members;
+	}
+
+	public void setEtag(String etag) {
+		this.etag = etag;
 	}
 }

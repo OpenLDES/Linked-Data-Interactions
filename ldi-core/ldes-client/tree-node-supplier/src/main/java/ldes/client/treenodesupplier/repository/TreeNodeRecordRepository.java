@@ -3,6 +3,7 @@ package ldes.client.treenodesupplier.repository;
 import ldes.client.treenodesupplier.domain.entities.TreeNodeRecord;
 import ldes.client.treenodesupplier.domain.valueobject.TreeNodeStatus;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface TreeNodeRecordRepository {
@@ -17,6 +18,21 @@ public interface TreeNodeRecordRepository {
 	 * @return <code>true</code> if the tree node exists
 	 */
 	boolean existsById(String treeNodeId);
+
+	/**
+	 * Reads the record of one tree node, including its cache validator and how
+	 * much of it has been processed
+	 *
+	 * @param treeNodeId the url of the tree node
+	 * @return the record, or an empty optional when the tree node is unknown
+	 */
+	Optional<TreeNodeRecord> findById(String treeNodeId);
+
+	/**
+	 * @return every known tree node record, so a traversal can resume from the
+	 * nodes a previous run discovered
+	 */
+	List<TreeNodeRecord> findAll();
 
 	/**
 	 * Searches the first TreeNodeRecord with the specified TreeNodeStatus and has the earliest

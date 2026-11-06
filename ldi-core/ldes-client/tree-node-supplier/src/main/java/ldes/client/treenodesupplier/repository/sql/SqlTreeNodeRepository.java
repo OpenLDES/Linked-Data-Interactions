@@ -7,6 +7,7 @@ import ldes.client.treenodesupplier.repository.TreeNodeRecordRepository;
 import ldes.client.treenodesupplier.repository.mapper.TreeNodeRecordEntityMapper;
 
 import javax.persistence.EntityManager;
+import java.util.List;
 import java.util.Optional;
 
 public class SqlTreeNodeRepository implements TreeNodeRecordRepository {
@@ -20,7 +21,15 @@ public class SqlTreeNodeRepository implements TreeNodeRecordRepository {
 	public void saveTreeNodeRecord(TreeNodeRecord treeNodeRecord) {
 		TreeNodeRecordEntity memberRecordEntity = TreeNodeRecordEntityMapper.fromTreeNodeRecord(treeNodeRecord);
 		entityManager.getTransaction().begin();
-		entityManager.merge(memberRecordEntity);
+		TreeNodeRecordEntity storedTreeNodeRecord = entityManager.find(TreeNodeRecordEntity.class, treeNodeRecord.getTreeNodeUrl());
+		if (storedTreeNodeRecord == null) {
+			entityManager.persist(memberRecordEntity);
+		} else {
+			storedTreeNodeRecord.setTreeNodeStatus(memberRecordEntity.getTreeNodeStatus());
+			storedTreeNodeRecord.setEarliestNextVisit(memberRecordEntity.getEarliestNextVisit());
+			storedTreeNodeRecord.setMembers(memberRecordEntity.getMembers());
+			storedTreeNodeRecord.setEtag(memberRecordEntity.getEtag());
+		}
 		entityManager.getTransaction().commit();
 	}
 
@@ -33,6 +42,26 @@ public class SqlTreeNodeRepository implements TreeNodeRecordRepository {
 				.getResultStream()
 				.findFirst()
 				.isPresent();
+	}
+
+	@Override
+	public Optional<TreeNodeRecord> findById(String treeNodeId) {
+		return entityManager
+				.createNamedQuery("TreeNode.getById", TreeNodeRecordEntity.class)
+				.setParameter("id", treeNodeId)
+				.setMaxResults(1)
+				.getResultStream()
+				.findFirst()
+				.map(TreeNodeRecordEntityMapper::toTreeNode);
+	}
+
+	@Override
+	public List<TreeNodeRecord> findAll() {
+		return entityManager
+				.createNamedQuery("TreeNode.getAll", TreeNodeRecordEntity.class)
+				.getResultStream()
+				.map(TreeNodeRecordEntityMapper::toTreeNode)
+				.toList();
 	}
 
 	@Override
