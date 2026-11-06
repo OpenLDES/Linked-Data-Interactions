@@ -15,4 +15,5 @@
     </dependencies>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>tree-node-fetcher</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 </project>

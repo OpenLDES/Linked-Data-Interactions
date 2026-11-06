@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>ngsiv2-to-ld-processor</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
     <packaging>nar</packaging>
 
     <dependencies>

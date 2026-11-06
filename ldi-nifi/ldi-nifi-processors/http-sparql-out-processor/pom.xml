@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>http-sparql-out-processor</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
     <packaging>nar</packaging>
 
     <dependencies>

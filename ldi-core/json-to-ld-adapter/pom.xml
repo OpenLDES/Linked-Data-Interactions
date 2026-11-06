@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>json-to-ld-adapter</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
     <dependencies>
         <dependency>
             <groupId>org.openldes.ldi</groupId>

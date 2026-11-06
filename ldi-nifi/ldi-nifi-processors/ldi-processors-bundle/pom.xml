@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>ldi-processors-bundle</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
     <packaging>jar</packaging>
 
     <dependencies>

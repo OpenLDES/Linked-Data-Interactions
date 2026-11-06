@@ -9,4 +9,5 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>ldio-noop-out</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 </project>

@@ -9,5 +9,6 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>starting-node</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
 </project>

@@ -9,6 +9,7 @@
 
     <groupId>org.openldes.ldio</groupId>
     <artifactId>ldio-connectors</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
     <packaging>pom</packaging>
 
     <modules>

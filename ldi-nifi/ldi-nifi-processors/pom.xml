@@ -9,6 +9,7 @@
 
     <groupId>org.openldes.ldi.nifi</groupId>
     <artifactId>ldi-nifi-processors</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
     <packaging>pom</packaging>
 
     <modules>

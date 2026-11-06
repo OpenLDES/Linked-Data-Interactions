@@ -10,6 +10,7 @@
 
     <groupId>org.openldes.ldi</groupId>
     <artifactId>ldi-nifi</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <modules>
         <module>ldi-nifi-common</module>

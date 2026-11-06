@@ -10,5 +10,6 @@
     </parent>
 
     <artifactId>ldi-common</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
 </project>

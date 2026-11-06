@@ -10,6 +10,7 @@
 	</parent>
 
 	<artifactId>rdf4j-repository-sink-processor</artifactId>
+	<name>${project.groupId}:${project.artifactId}</name>
 	<packaging>nar</packaging>
 
 	<dependencies>

@@ -10,6 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>ldio-ldes-client-connector</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <dependencies>
 

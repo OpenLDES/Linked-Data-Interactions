@@ -24,6 +24,9 @@ publication; both default to disabled when unset.
 Maven publication configures the `central` and `snapshots` server IDs with Central Portal user-token
 credentials. Ordinary verification does not sign artifacts; signing runs only with the `release`
 profile during publication, using `MAVEN_GPG_PASSPHRASE` for non-interactive signing.
+Every module declares its own project name because Maven does not inherit it from parent POMs.
+The `release` profile attaches source and Javadoc JARs for publication; do not skip Javadoc
+generation when publishing to Central.
 The assembled NiFi `ldi-processors-bundle` is not published to Central because it repackages the
 individual NAR artifacts and makes the combined upload exceed the Portal's request limit; the
 individual NiFi processor artifacts are still published.

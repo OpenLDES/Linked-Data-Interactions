@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>ldio-amqp</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <qpid-jms-client.version>2.5.0</qpid-jms-client.version>

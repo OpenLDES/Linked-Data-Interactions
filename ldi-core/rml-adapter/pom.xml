@@ -10,6 +10,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>rml-adapter</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <carml.version>0.4.13</carml.version>

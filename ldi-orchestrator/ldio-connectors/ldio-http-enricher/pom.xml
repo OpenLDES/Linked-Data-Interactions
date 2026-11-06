@@ -11,6 +11,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>ldio-http-enricher</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <apache.commons.version>1.10.0</apache.commons.version>

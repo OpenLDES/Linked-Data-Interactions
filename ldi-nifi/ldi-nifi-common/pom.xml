@@ -8,6 +8,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>ldi-nifi-common</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <nifi-dbcp.version>2.1.0</nifi-dbcp.version>

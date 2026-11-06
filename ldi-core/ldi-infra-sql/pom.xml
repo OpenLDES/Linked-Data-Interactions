@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>ldi-infra-sql</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
 
     <dependencies>

@@ -11,6 +11,7 @@
 
     <groupId>org.openldes.ldi</groupId>
     <artifactId>ldi-extensions</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
     <packaging>pom</packaging>
     <modules>
         <module>ldes-discoverer</module>

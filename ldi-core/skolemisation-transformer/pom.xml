@@ -10,5 +10,6 @@
     </parent>
 
     <artifactId>skolemisation-transformer</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
 </project>
