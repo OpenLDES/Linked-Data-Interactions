@@ -166,8 +166,7 @@ class JsonToLdAdapterTest {
 	private Model readModelFromFile(String path) throws IOException {
 		String data = Files.readString(Path.of(path));
 		Model model = ModelFactory.createDefaultModel();
-		RDFParser.fromString(data)
-				.lang(Lang.JSONLD)
+		RDFParser.fromString(data, Lang.JSONLD)
 				.parse(model);
 		return model;
 	}

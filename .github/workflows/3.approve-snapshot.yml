@@ -6,50 +6,52 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ldes-server
   JAVA_DISTRIBUTION: ${{ vars.JAVA_DISTRIBUTION }}
   JAVA_VERSION: ${{ vars.JAVA_VERSION }}
   GIT_CONFIG_USERNAME: ${{ vars.GIT_CONFIG_USERNAME }}
   GIT_CONFIG_EMAIL: ${{ vars.GIT_CONFIG_EMAIL }}
-  DEPLOY_DOCS_PAT: ${{ secrets.DEPLOY_DOCS_PAT }}
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   approve-snapshot:
-    if: ${{ github.ref == 'refs/heads/main' || github.event_name == 'release' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event_name == 'release' && github.event.release.target_commitish == 'main') }}
     name: Approve Snapshot and Promote
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           java-version: ${{ env.JAVA_VERSION }}
-      - name: Define docker variables
+      - name: Promote snapshot version
         run: |
-          export VERSION=$(mvn help:evaluate -Dexpression="project.version" -q -DforceStdout)
-          
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+
           echo "current version: $VERSION"
           if [[ $VERSION == *"-SNAPSHOT" ]]; then
-            echo "Dealing with a snapshot version. Current version: $VERSION"
-            export NEWVERSION=$(echo ${VERSION/"-SNAPSHOT"/""})
-            echo "New version: ${NEWVERSION}"
-            mvn -B versions:set -DnewVersion=${NEWVERSION} -DgenerateBackupPoms=false
-            git config --global user.name "${{ env.GIT_CONFIG_USERNAME }}"
-            git config --global user.email "${{ env.GIT_CONFIG_EMAIL }}"
-            git config --global url."https://${{ env.DEPLOY_DOCS_PAT }}@github.com/".insteadOf https://github.com/
-            git add -A
-            git commit -am "ci: Promoted version to ${NEWVERSION}"
-            echo "NEW_VERSION=${NEWVERSION}" >> $GITHUB_ENV
+            NEWVERSION="${VERSION%-SNAPSHOT}"
+            mvn -B versions:set -DnewVersion="$NEWVERSION" -DgenerateBackupPoms=false
+            echo "NEW_VERSION=$NEWVERSION" >> "$GITHUB_ENV"
           else
             echo "Already released. Current version: $VERSION"
           fi
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         if: ${{ env.NEW_VERSION != '' }}
         with:
+          base: main
+          committer: ${{ env.GIT_CONFIG_USERNAME }} <${{ env.GIT_CONFIG_EMAIL }}>
+          commit-message: 'ci: Promoted version to ${{ env.NEW_VERSION }}'
+          add-paths: |
+            pom.xml
+            **/pom.xml
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           signoff: false
           branch: ci/promote-snapshot

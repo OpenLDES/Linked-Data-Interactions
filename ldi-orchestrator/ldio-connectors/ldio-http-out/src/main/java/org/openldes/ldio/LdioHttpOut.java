@@ -8,6 +8,7 @@ import org.openldes.ldi.requestexecutor.valueobjects.RequestHeader;
 import org.openldes.ldi.requestexecutor.valueobjects.RequestHeaders;
 import org.openldes.ldi.requestexecutor.valueobjects.Response;
 import org.openldes.ldi.types.LdiOutput;
+import org.openldes.ldio.exceptions.HttpOutException;
 import org.apache.jena.rdf.model.Model;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +25,25 @@ public class LdioHttpOut implements LdiOutput {
 	private final String targetURL;
 	private final LdiRdfWriterProperties rdfWriterProperties;
 	private final LdiRdfWriter ldiRdfWriter;
+	private final boolean continueOnFail;
 
 	public LdioHttpOut(RequestExecutor requestExecutor, String targetURL,
 			LdiRdfWriterProperties rdfWriterProperties) {
+		this(requestExecutor, targetURL, rdfWriterProperties, true);
+	}
+
+	/**
+	 * @param continueOnFail when false, a non-2xx response that remains after the configured retries raises an
+	 *                       {@link HttpOutException}, so the pipeline input can act on the failed delivery.
+	 *                       When true, the failure is only logged.
+	 */
+	public LdioHttpOut(RequestExecutor requestExecutor, String targetURL,
+			LdiRdfWriterProperties rdfWriterProperties, boolean continueOnFail) {
 		this.requestExecutor = requestExecutor;
 		this.targetURL = targetURL;
 		this.rdfWriterProperties = rdfWriterProperties;
 		this.ldiRdfWriter = LdiRdfWriter.getRdfWriter(rdfWriterProperties);
+		this.continueOnFail = continueOnFail;
 	}
 
 	@Override
@@ -46,9 +59,13 @@ public class LdioHttpOut implements LdiOutput {
 				if (response.isSuccess()) {
 					log.debug("{} {} {}", request.getMethod(), request.getUrl(), response.getHttpStatus());
 				} else {
+					final String body = response.getBodyAsString().orElse(null);
+					if (!continueOnFail) {
+						throw new HttpOutException(response.getRequestedUrl(), response.getHttpStatus(), body);
+					}
 					log.atError().log("Failed to post model. The request url was {}. " +
 									  "The http response obtained from the server has code {} and body \"{}\".",
-							response.getRequestedUrl(), response.getHttpStatus(), response.getBodyAsString().orElse(null));
+							response.getRequestedUrl(), response.getHttpStatus(), body);
 				}
 			}
 		}

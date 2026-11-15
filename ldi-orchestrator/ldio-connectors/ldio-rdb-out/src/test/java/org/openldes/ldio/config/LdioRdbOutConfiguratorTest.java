@@ -1,7 +1,6 @@
 package org.openldes.ldio.config;
 
 import java.sql.SQLException;
-import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.openldes.ldi.types.LdiComponent;
 import org.openldes.ldio.LdioRdbOut;
@@ -30,8 +29,8 @@ class LdioRdbOutConfiguratorTest {
     public static final String DEFAULT_SPARQL_SELECT_QUERY = "SELECT * WHERE {?s ?p ?o}";
 
     @Test
-    @SneakyThrows
-    void given_jdbcTemplateAndTransactionTemplate_when_createLdioRdbOutAutoConfig_then_ldioConfiguratorBeanIsCreated() {
+    void given_jdbcTemplateAndTransactionTemplate_when_createLdioRdbOutAutoConfig_then_ldioConfiguratorBeanIsCreated()
+            throws SQLException {
         JdbcTemplate jdbcTemplateMock = getJdbcTemplateMock();
         TransactionTemplate transactionTemplateMock = Mockito.mock(TransactionTemplate.class);
         LdioRdbOutAutoConfig config = new LdioRdbOutAutoConfig(jdbcTemplateMock, transactionTemplateMock);
@@ -49,8 +48,8 @@ class LdioRdbOutConfiguratorTest {
     }
 
     @Test
-    @SneakyThrows
-    void given_jdbcTemplateAndTransactionTemplate_when_createLdioRdbOutAutoConfigWithProperties_then_ldioConfiguratorBeanHasUsedProperties() {
+    void given_jdbcTemplateAndTransactionTemplate_when_createLdioRdbOutAutoConfigWithProperties_then_ldioConfiguratorBeanHasUsedProperties()
+            throws SQLException {
         JdbcTemplate jdbcTemplateMock = getJdbcTemplateMock();
         TransactionTemplate transactionTemplateMock = Mockito.mock(TransactionTemplate.class);
         ComponentProperties properties = Mockito.mock(ComponentProperties.class);
@@ -102,8 +101,8 @@ class LdioRdbOutConfiguratorTest {
     }
 
     @Test
-    @SneakyThrows
-    void given_jdbcTemplate_when_createLdioRdbOutAutoConfigWithPropertiesAndIgnoreDuplicateKeyException_then_ldioConfiguratorBeanHasUsedProperties() {
+    void given_jdbcTemplate_when_createLdioRdbOutAutoConfigWithPropertiesAndIgnoreDuplicateKeyException_then_ldioConfiguratorBeanHasUsedProperties()
+            throws SQLException {
         JdbcTemplate jdbcTemplateMock = getJdbcTemplateMock();
         TransactionTemplate transactionTemplateMock = Mockito.mock(TransactionTemplate.class);
         ComponentProperties properties = Mockito.mock(ComponentProperties.class);

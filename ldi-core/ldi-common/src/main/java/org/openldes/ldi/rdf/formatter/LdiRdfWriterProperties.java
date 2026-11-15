@@ -5,7 +5,7 @@ import org.apache.jena.riot.Lang;
 
 import java.util.Map;
 
-import static org.apache.jena.riot.RDFLanguages.nameToLang;
+import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 
 public class LdiRdfWriterProperties {
 	public static final String RDF_WRITER = "rdfwriter";
@@ -34,7 +34,7 @@ public class LdiRdfWriterProperties {
 
 	private void setLangFromProperties() {
 		if (properties.containsKey(CONTENT_TYPE)) {
-			this.lang = nameToLang(MediaType.createFromContentType(getProperty(CONTENT_TYPE)).getContentTypeStr());
+			this.lang = contentTypeToLang(MediaType.createFromContentType(getProperty(CONTENT_TYPE)).getContentTypeStr());
 		} else {
 			this.lang = Lang.TTL;
 		}

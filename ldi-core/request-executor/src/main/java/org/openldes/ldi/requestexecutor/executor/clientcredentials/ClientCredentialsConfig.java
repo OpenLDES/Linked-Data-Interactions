@@ -2,6 +2,7 @@ package org.openldes.ldi.requestexecutor.executor.clientcredentials;
 
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
 import org.openldes.ldi.requestexecutor.executor.RequestExecutorSupplier;
+import org.openldes.ldi.requestexecutor.valueobjects.HttpTimeouts;
 import org.apache.http.Header;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
@@ -26,6 +27,7 @@ public class ClientCredentialsConfig implements RequestExecutorSupplier {
 	private final String tokenEndpoint;
 	private final String scope;
 	private final boolean enableRedirectHandling;
+	private final HttpTimeouts timeouts;
 
 	public ClientCredentialsConfig(Collection<Header> headers,
 								   String clientId,
@@ -33,12 +35,23 @@ public class ClientCredentialsConfig implements RequestExecutorSupplier {
 								   String tokenEndpoint,
 								   String scope,
 								   boolean enableRedirectHandling) {
+		this(headers, clientId, secret, tokenEndpoint, scope, enableRedirectHandling, HttpTimeouts.defaults());
+	}
+
+	public ClientCredentialsConfig(Collection<Header> headers,
+								   String clientId,
+								   String secret,
+								   String tokenEndpoint,
+								   String scope,
+								   boolean enableRedirectHandling,
+								   HttpTimeouts timeouts) {
 		this.headers = headers;
 		this.clientId = notNull(clientId);
 		this.secret = notNull(secret);
 		this.tokenEndpoint = notNull(tokenEndpoint);
 		this.scope = scope;
 		this.enableRedirectHandling = enableRedirectHandling;
+		this.timeouts = notNull(timeouts);
 	}
 
 	@Override
@@ -47,7 +60,7 @@ public class ClientCredentialsConfig implements RequestExecutorSupplier {
 	}
 
 	private OAuth20Service createService() {
-		final RequestConfig.Builder configBuilder = RequestConfig.custom();
+		final RequestConfig.Builder configBuilder = timeouts.applyTo(RequestConfig.custom());
 		final RequestConfig clientConfig = configBuilder.setRedirectsEnabled(enableRedirectHandling).build();
 		final ApacheHttpClient apacheHttpClient = new ApacheHttpClient(
 				HttpAsyncClientBuilder.create().setDefaultRequestConfig(clientConfig).setDefaultHeaders(headers).build());

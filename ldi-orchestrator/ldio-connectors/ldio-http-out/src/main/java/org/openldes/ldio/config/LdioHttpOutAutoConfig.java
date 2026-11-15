@@ -15,6 +15,8 @@ import static org.openldes.ldio.LdioHttpOut.NAME;
 
 @Configuration
 public class LdioHttpOutAutoConfig {
+	public static final String ENDPOINT = "endpoint";
+	public static final String CONTINUE_ON_FAIL = "continueOnFail";
 
 	@SuppressWarnings("java:S6830")
 	@Bean(NAME)
@@ -28,10 +30,12 @@ public class LdioHttpOutAutoConfig {
 		public LdiComponent configure(ComponentProperties config) {
 			final RequestExecutor requestExecutor = new LdioRequestExecutorSupplier().getRequestExecutor(config);
 
-			String targetURL = config.getProperty("endpoint");
+			String targetURL = config.getProperty(ENDPOINT);
+			boolean continueOnFail = config.getOptionalBoolean(CONTINUE_ON_FAIL).orElse(true);
 
 			return new LdioHttpOut(requestExecutor, targetURL,
-					new LdiRdfWriterProperties(config.extractNestedProperties(RDF_WRITER).getConfig()));
+					new LdiRdfWriterProperties(config.extractNestedProperties(RDF_WRITER).getConfig()),
+					continueOnFail);
 		}
 	}
 }

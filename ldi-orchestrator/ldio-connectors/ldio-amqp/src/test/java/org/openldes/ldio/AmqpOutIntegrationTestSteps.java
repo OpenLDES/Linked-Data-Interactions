@@ -48,7 +48,7 @@ public class AmqpOutIntegrationTestSteps {
     @And("^I create a model with (.*) and (.*)")
     public void iCreateAModelWithContentTypeAnd(String contentType, String content) {
         this.contentType = RDFLanguages.contentTypeToLang(contentType);
-        this.inputModel = RDFParser.fromString(content).lang(contentTypeToLang(contentType)).toModel();
+        this.inputModel = RDFParser.fromString(content, contentTypeToLang(contentType)).toModel();
     }
 
     @And("I create default config for LdioAmqpOut")
@@ -79,7 +79,7 @@ public class AmqpOutIntegrationTestSteps {
     @And("The mock listener result will contain the model")
     public void theResultValueWillContainTheModel() throws JMSException {
         String body = message.getBody(String.class);
-        Model resultModel = RDFParser.fromString(body).lang(contentType).build().toModel();
+        Model resultModel = RDFParser.fromString(body, contentType).build().toModel();
         assertThat(resultModel.isIsomorphicWith(inputModel)).isTrue();
     }
 }

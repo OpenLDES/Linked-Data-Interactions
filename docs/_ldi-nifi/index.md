@@ -72,4 +72,4 @@ This can be done by following these steps:
 7. Use the service in the processors that require it.
 
 [Apache NiFi]: https://nifi.apache.org/
-[nexus repository]: https://s01.oss.sonatype.org/#nexus-search;quick~org.openldes.ldi.nifi
+[nexus repository]: https://central.sonatype.com/search?q=org.openldes&namespace=org.openldes&name=ldi-nifi

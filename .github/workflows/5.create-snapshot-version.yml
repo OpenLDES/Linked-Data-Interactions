@@ -1,0 +1,78 @@
+name: 5. Create Snapshot Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      type_of_bump:
+        type: choice
+        description: Type of version bump
+        required: true
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+concurrency:
+  group: create-snapshot-version-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  JAVA_DISTRIBUTION: ${{ vars.JAVA_DISTRIBUTION }}
+  JAVA_VERSION: ${{ vars.JAVA_VERSION }}
+  GIT_CONFIG_USERNAME: ${{ vars.GIT_CONFIG_USERNAME }}
+  GIT_CONFIG_EMAIL: ${{ vars.GIT_CONFIG_EMAIL }}
+
+jobs:
+  create-snapshot:
+    if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.ref_name }}
+      - name: Set up Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+      - name: Bump snapshot version
+        shell: bash
+        env:
+          TYPE_OF_BUMP: ${{ inputs.type_of_bump }}
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ ! "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-SNAPSHOT)?$ ]]; then
+            echo "::error::Unsupported project version: $VERSION"
+            exit 1
+          fi
+
+          MAJOR=$((10#${BASH_REMATCH[1]}))
+          MINOR=$((10#${BASH_REMATCH[2]}))
+          PATCH=$((10#${BASH_REMATCH[3]}))
+          case "$TYPE_OF_BUMP" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+            *)
+              echo "::error::Unsupported version bump: $TYPE_OF_BUMP"
+              exit 1
+              ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH-SNAPSHOT"
+          echo "Bumping $VERSION to $NEW_VERSION"
+          mvn -B versions:set -DnewVersion="$NEW_VERSION" -DgenerateBackupPoms=false
+          echo "NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
+      - name: Commit and push snapshot version
+        shell: bash
+        run: |
+          git config user.name "$GIT_CONFIG_USERNAME"
+          git config user.email "$GIT_CONFIG_EMAIL"
+          git add -- pom.xml '**/pom.xml'
+          git commit -m "ci: Bump version to $NEW_VERSION"
+          git push origin "HEAD:$GITHUB_REF"
