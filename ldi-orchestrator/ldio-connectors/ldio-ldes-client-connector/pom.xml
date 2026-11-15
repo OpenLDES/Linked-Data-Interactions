@@ -5,11 +5,12 @@
     <parent>
         <groupId>org.openldes.ldio</groupId>
         <artifactId>ldio-connectors</artifactId>
-        <version>3.2.1-SNAPSHOT</version>
+        <version>3.2.3-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>ldio-ldes-client-connector</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <dependencies>
 

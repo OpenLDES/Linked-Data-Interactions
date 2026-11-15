@@ -7,10 +7,11 @@
     <parent>
         <artifactId>ldi-nifi-processors</artifactId>
         <groupId>org.openldes.ldi.nifi</groupId>
-        <version>3.2.1-SNAPSHOT</version>
+        <version>3.2.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>ngsiv2-to-ld-processor</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
     <packaging>nar</packaging>
 
     <dependencies>

@@ -3,13 +3,14 @@
     <parent>
         <artifactId>linked-data-interactions</artifactId>
         <groupId>org.openldes</groupId>
-        <version>3.2.1-SNAPSHOT</version>
+        <version>3.2.3-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <packaging>pom</packaging>
 
     <groupId>org.openldes.ldi</groupId>
     <artifactId>ldi-nifi</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <modules>
         <module>ldi-nifi-common</module>

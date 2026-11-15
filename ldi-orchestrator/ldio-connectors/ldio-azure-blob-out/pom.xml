@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.openldes.ldio</groupId>
         <artifactId>ldio-connectors</artifactId>
-        <version>3.2.1-SNAPSHOT</version>
+        <version>3.2.3-SNAPSHOT</version>
     </parent>
 
     <properties>
@@ -15,6 +15,7 @@
     </properties>
 
     <artifactId>ldio-azure-blob-out</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <dependencies>
         <dependency>
