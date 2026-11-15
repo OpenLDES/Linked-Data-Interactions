@@ -48,7 +48,7 @@ class ViewSpecificationTest {
 					ldes:transactionFinalizedPath ex:closed ;
 					ldes:transactionFinalizedObject "done" ;
 					tree:view ex:root .
-				""").lang(Lang.TURTLE).toModel();
+				""", Lang.TURTLE).toModel();
 
 		final EventStreamProperties properties = specification(model, "http://example.org/root")
 				.extractEventStreamProperties();
@@ -69,7 +69,7 @@ class ViewSpecificationTest {
 				<localhost:10101/exampleData> a ldes:EventStream ;
 					ldes:timestampPath prov:generatedAtTime ;
 					ldes:versionOfPath dcterms:isVersionOf .
-				""").lang(Lang.TURTLE).toModel();
+				""", Lang.TURTLE).toModel();
 
 		final EventStreamProperties properties = specification(model, entrypoint)
 				.extractEventStreamProperties();
