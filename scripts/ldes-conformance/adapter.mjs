@@ -19,7 +19,7 @@ if (operation === "probe") {
       protocolVersion: 0,
       available,
       adapterId: "openldes-ldi",
-      clientVersion: "3.1.1",
+      clientVersion: process.env.LDES_CT_CLIENT_VERSION ?? "unknown",
       clientRevision: process.env.LDES_CT_CLIENT_REVISION ?? "unknown",
       capabilities: {
         modes: ["unordered", "ordered"],

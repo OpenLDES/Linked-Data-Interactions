@@ -7,7 +7,7 @@
     "id": "openldes-ldi-client",
     "name": "OpenLDES Linked Data Interactions client",
     "homepage": "https://github.com/OpenLDES/Linked-Data-Interactions/tree/main/ldi-core/ldes-client",
-    "version": "3.1.1",
+    "version": "set-by-runner",
     "revision": "unknown"
   },
   "command": [

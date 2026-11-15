@@ -131,14 +131,33 @@ printf 'Conformance suite revision: %s\n' "${suite_revision}"
   node dist/cli.js validate --tests "${tests_path}"
 )
 
+# The adapter must link against the client built from this checkout, so it
+# depends on this checkout's project version rather than a fixed release.
+client_version="$(
+  mvn -B -q -f "${repository_root}/pom.xml" help:evaluate \
+    -Dexpression=project.version -DforceStdout
+)"
+[[ "${client_version}" =~ ^[0-9A-Za-z.+-]+$ ]] ||
+  die "could not determine the client version (got: ${client_version})"
+printf 'OpenLDES client version: %s\n' "${client_version}"
+
 # Keep the adapter with the client API it exercises. The test harness and
 # scenarios still come from the requested upstream suite revision.
+adapter_dir="${suite_dir}/adapters/openldes-ldi"
 cp -- "${script_dir}/ldes-conformance/OpenLdesAdapter.java" \
-  "${suite_dir}/adapters/openldes-ldi/src/main/java/org/openldes/conformance/OpenLdesAdapter.java"
-cp -- "${script_dir}/ldes-conformance/adapter.mjs" \
-  "${suite_dir}/adapters/openldes-ldi/adapter.mjs"
-cp -- "${script_dir}/ldes-conformance/adapter.json" \
-  "${suite_dir}/adapters/openldes-ldi/adapter.json"
+  "${adapter_dir}/src/main/java/org/openldes/conformance/OpenLdesAdapter.java"
+cp -- "${script_dir}/ldes-conformance/adapter.mjs" "${adapter_dir}/adapter.mjs"
+sed "s|@OPENLDES_VERSION@|${client_version}|g" \
+  "${script_dir}/ldes-conformance/pom.xml" > "${adapter_dir}/pom.xml"
+grep -q "<openldes.version>${client_version}</openldes.version>" "${adapter_dir}/pom.xml" ||
+  die "failed to set the client version in the adapter pom.xml"
+node -e '
+  const fs = require("node:fs");
+  const [source, target, version] = process.argv.slice(1);
+  const declaration = JSON.parse(fs.readFileSync(source, "utf8"));
+  declaration.client.version = version;
+  fs.writeFileSync(target, `${JSON.stringify(declaration, null, 2)}\n`);
+' "${script_dir}/ldes-conformance/adapter.json" "${adapter_dir}/adapter.json" "${client_version}"
 
 client_revision="$(git -C "${repository_root}" rev-parse HEAD 2>/dev/null || printf 'workspace')"
 if [[ -n "$(git -C "${repository_root}" status --porcelain 2>/dev/null)" ]]; then
@@ -177,6 +196,7 @@ set +e
 (
   cd "${suite_dir}"
   LDES_CT_CLIENT_REVISION="${client_revision}" \
+    LDES_CT_CLIENT_VERSION="${client_version}" \
     LDES_CT_OPENLDES_ROOT="${repository_root}" \
     "${run_arguments[@]}"
 ) &
