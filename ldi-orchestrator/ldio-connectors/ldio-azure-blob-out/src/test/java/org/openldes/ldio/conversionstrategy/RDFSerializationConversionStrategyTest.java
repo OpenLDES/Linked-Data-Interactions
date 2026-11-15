@@ -28,13 +28,13 @@ class RDFSerializationConversionStrategyTest {
 	void when_ModelIsConverted_then_JsonSerializedStringIsReturned(Lang lang, String expectedContentFileName,
 			String expectedFileExtension) throws IOException, URISyntaxException {
 		ConversionStrategy conversionStrategy = new RDFSerializationConversionStrategy(lang);
-		Model model = RDFParser.fromString(readFile("original.jsonld")).lang(Lang.JSONLD11).toModel();
+		Model model = RDFParser.fromString(readFile("original.jsonld"), Lang.JSONLD11).toModel();
 		String expectedContent = readFile(expectedContentFileName);
 
 		String actualContent = conversionStrategy.getContent(model);
 
-		assertTrue(RDFParser.fromString(expectedContent).lang(lang).toModel().isIsomorphicWith(
-				RDFParser.fromString(actualContent).lang(lang).toModel()));
+		assertTrue(RDFParser.fromString(expectedContent, lang).toModel().isIsomorphicWith(
+				RDFParser.fromString(actualContent, lang).toModel()));
 		assertEquals(expectedFileExtension, conversionStrategy.getFileExtension());
 
 	}

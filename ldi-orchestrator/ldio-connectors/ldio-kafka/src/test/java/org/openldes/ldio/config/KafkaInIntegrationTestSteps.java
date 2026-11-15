@@ -71,13 +71,13 @@ public class KafkaInIntegrationTestSteps extends KafkaIntegrationTest {
 
 	private Model toModel(LdiAdapter.Content content) {
 		return RDFParserBuilder.create()
-				.fromString(content.content()).lang(nameToLang(content.mimeType())).toModel();
+				.fromString(content.content()).lang(contentTypeToLang(content.mimeType())).toModel();
 	}
 
 	@And("^I create a model from (.*) and (.*)$")
 	public void iCreateAModel(String modelString, String contentType) {
 		this.contentType = contentType;
-		this.inputModel = RDFParser.fromString(modelString).lang(contentTypeToLang(contentType)).toModel();
+		this.inputModel = RDFParser.fromString(modelString, contentTypeToLang(contentType)).toModel();
 	}
 
 	@And("I create default config for LdioKafkaIn")
@@ -124,7 +124,7 @@ public class KafkaInIntegrationTestSteps extends KafkaIntegrationTest {
 
 	@And("The result value will contain the model")
 	public void theResultValueWillContainTheModel() {
-		Model resultModel = RDFParser.fromString(adapterResult.get(0).content()).lang(contentTypeToLang(contentType))
+		Model resultModel = RDFParser.fromString(adapterResult.get(0).content(), contentTypeToLang(contentType))
 				.build().toModel();
 		assertTrue(resultModel.isIsomorphicWith(inputModel));
 	}

@@ -43,7 +43,7 @@ class ChangeDetectionFilterTest {
 	@ParameterizedTest
 	@MethodSource("supplyInvalidTriples")
 	void when_FilterInvalidStateObjects_then_ThrowException(String triples) {
-		final Model invalidStateObject = RDFParser.fromString(triples).lang(Lang.NT).toModel();
+		final Model invalidStateObject = RDFParser.fromString(triples, Lang.NT).toModel();
 
 		assertThatThrownBy(() -> changeDetectionFilter.transform(invalidStateObject))
 				.isInstanceOf(IllegalStateException.class)

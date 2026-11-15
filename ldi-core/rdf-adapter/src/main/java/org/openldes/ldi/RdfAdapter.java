@@ -9,7 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Stream;
 
-import static org.apache.jena.riot.RDFLanguages.nameToLang;
+import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 
 /**
  * Basic adapter that will convert an RDF string to a linked data model
@@ -28,7 +28,7 @@ public class RdfAdapter implements LdiAdapter {
 				RDFParser
 						.source(new ByteArrayInputStream(input.content().getBytes(StandardCharsets.UTF_8)))
 						.context(context)
-						.lang(nameToLang(input.mimeType()))
+						.lang(contentTypeToLang(input.mimeType()))
 						.toModel()
 		);
 	}

@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 import static org.openldes.ldio.pipeline.creation.LdioTransformer.link;
 import static org.apache.jena.rdf.model.ResourceFactory.createProperty;
 import static org.apache.jena.rdf.model.ResourceFactory.createResource;
-import static org.apache.jena.riot.RDFLanguages.nameToLang;
+import static org.apache.jena.riot.RDFLanguages.contentTypeToLang;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class HttpEnricherSteps {
@@ -43,7 +43,7 @@ public class HttpEnricherSteps {
 				RDFParserBuilder
 						.create()
 						.fromString(input.content())
-						.lang(nameToLang(input.mimeType()))
+						.lang(contentTypeToLang(input.mimeType()))
 						.toModel());
 	}
 

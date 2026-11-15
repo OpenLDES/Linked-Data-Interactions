@@ -33,6 +33,17 @@ When retries are enabled, the following statuses are always retried, regardless 
 | _rate-limit.limit_   | Limit of requests per period, which is defined below, that the http client should do when `rate-limit.enabled = true`             | No       | 500     | Integer           | 100     |
 | _rate-limit.period_  | Period in which the limit of requests, which is defined above, can be reached by the http client when `rate-limit.enabled = true` | No       | PT1M    | ISO 8601 Duration | PT1H    |
 
+#### Timeout properties
+
+| Property                      | Description                                                                                                                                                  | Required | Default | Supported values           | Example |
+|:------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------|:--------|:---------------------------|:--------|
+| _timeouts.connect_            | Maximum time to establish the connection with the server.                                                                                                     | No       | PT30S   | Positive ISO 8601 Duration | PT10S   |
+| _timeouts.connection-request_ | Maximum time to wait for a free connection from the http client's connection pool.                                                                            | No       | PT1M    | Positive ISO 8601 Duration | PT30S   |
+| _timeouts.socket_             | Maximum time of inactivity while waiting for data from the server, e.g. for the response of a slow query. Raise it for endpoints that legitimately need longer. | No       | PT5M    | Positive ISO 8601 Duration | PT15M   |
+
+A request that exceeds one of these timeouts fails with an error and is retried like any other connection error when retries are enabled.
+Without a timeout, a server that accepts the connection but never answers would block the pipeline indefinitely.
+
 #### Http headers
 
 | Property                  | Description                                                                                      | Required | Default | Supported values | Example |
@@ -64,6 +75,9 @@ When retries are enabled, the following statuses are always retried, regardless 
           enabled: true
           period: P1D
           limit: 1000
+        timeouts:
+          connect: PT10S
+          socket: PT15M
 ```
 </div>
 

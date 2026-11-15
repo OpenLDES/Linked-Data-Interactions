@@ -36,7 +36,7 @@ class LdiRdfWriterTest {
 
 		String output = LdiRdfWriter.getRdfWriter(writerProperties.withLang(Lang.JSONLD)).write(model);
 		JsonObject outputJson = JSON.parse(output);
-		Model outputModel = RDFParser.fromString(output).lang(Lang.JSONLD).toModel();
+		Model outputModel = RDFParser.fromString(output, Lang.JSONLD).toModel();
 
 		assertThat(outputJson.hasKey("@graph")).isFalse();
 		assertThat(outputModel).matches(expected::isIsomorphicWith);
@@ -53,7 +53,7 @@ class LdiRdfWriterTest {
 
 		String output = LdiRdfWriter.getRdfWriter(writerProperties.withLang(Lang.JSONLD)).write(model);
 		JsonObject outputJson = JSON.parse(output);
-		Model outputModel = RDFParser.fromString(output).lang(Lang.JSONLD).toModel();
+		Model outputModel = RDFParser.fromString(output, Lang.JSONLD).toModel();
 
 		assertThat(outputJson.hasKey("@graph")).isFalse();
 		assertThat(outputModel).matches(expected::isIsomorphicWith);
@@ -77,7 +77,7 @@ class LdiRdfWriterTest {
 		Model expectedModel = RDFParser.source("rdf/formatter/expected/product.ttl").lang(Lang.TURTLE).toModel();
 
 		String output = LdiRdfWriter.getRdfWriter(new LdiRdfWriterProperties().withLang(Lang.TURTLE)).write(inputModel);
-		Model outputModel = RDFParser.fromString(output).lang(Lang.TURTLE).toModel();
+		Model outputModel = RDFParser.fromString(output, Lang.TURTLE).toModel();
 
 		assertThat(outputModel).matches(expectedModel::isIsomorphicWith);
 	}
@@ -88,7 +88,7 @@ class LdiRdfWriterTest {
 		Model expectedModel = RDFParser.source("rdf/formatter/expected/product.nq").lang(Lang.NQUADS).toModel();
 
 		String output = LdiRdfWriter.getRdfWriter(new LdiRdfWriterProperties().withLang(Lang.NQUADS)).write(model);
-		Model outputModel = RDFParser.fromString(output).lang(Lang.NQUADS).toModel();
+		Model outputModel = RDFParser.fromString(output, Lang.NQUADS).toModel();
 
 		assertThat(outputModel).matches(expectedModel::isIsomorphicWith);
 	}

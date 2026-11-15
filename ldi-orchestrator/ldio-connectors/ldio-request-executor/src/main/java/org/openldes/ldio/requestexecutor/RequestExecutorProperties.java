@@ -26,6 +26,10 @@ public class RequestExecutorProperties {
     public static final String RATE_LIMIT_LIMIT = "rate-limit.limit";
     public static final String RATE_LIMIT_PERIOD = "rate-limit.period";
     public static final String DEFAULT_RATE_LIMIT_PERIOD = "PT1M";
+
+    public static final String TIMEOUT_CONNECT = "timeouts.connect";
+    public static final String TIMEOUT_CONNECTION_REQUEST = "timeouts.connection-request";
+    public static final String TIMEOUT_SOCKET = "timeouts.socket";
     // authorization properties
     public static final String AUTH_TYPE = "auth.type";
     public static final String API_KEY = "auth.api-key";

@@ -84,7 +84,7 @@ public class RDF4JRepositorySinkProcessor extends AbstractProcessor {
 		try {
 			List<Model> models = flowFiles.stream()
 					.map(flowFile -> FlowManager.receiveData(session, flowFile))
-					.map(content -> RDFParser.fromString(content).context(jenaContext).lang(dataSourceFormat).toModel())
+					.map(content -> RDFParser.fromString(content, dataSourceFormat).context(jenaContext).toModel())
 					.toList();
 
 			repositorySink.process(models);

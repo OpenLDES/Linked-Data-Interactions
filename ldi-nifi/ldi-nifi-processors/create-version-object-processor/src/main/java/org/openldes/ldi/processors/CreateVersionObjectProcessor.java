@@ -101,9 +101,8 @@ public class CreateVersionObjectProcessor extends AbstractProcessor {
 		try {
 			Model input =
 					RDFParser
-							.fromString(content)
+							.fromString(content, lang)
 							.context(jenaContext)
-							.lang(lang)
 							.toModel();
 			Model versionObject = versionObjectCreator.transform(input);
 
