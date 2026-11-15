@@ -13,6 +13,12 @@ it here lets client API changes and adapter wiring be reviewed together without
 text substitutions against upstream Java source. Test cases, expectations, and
 the harness remain upstream-owned.
 
+The adapter `pom.xml` is also kept here. The runner sets its
+`@OPENLDES_VERSION@` placeholder, and the client version in `adapter.json` and
+the probe, to this checkout's project version, so the adapter always links
+against the client modules that `build.sh` just installed instead of a fixed
+release.
+
 The adapter reports unordered and ordered traversal, member extraction,
 context, and persistent state. Keep `adapter.json` and the `adapter.mjs` probe
 consistent when changing capabilities. The probe records the client revision
