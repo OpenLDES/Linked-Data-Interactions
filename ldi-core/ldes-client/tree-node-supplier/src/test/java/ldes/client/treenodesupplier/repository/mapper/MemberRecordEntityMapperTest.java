@@ -19,8 +19,7 @@ class MemberRecordEntityMapperTest {
 		final Dataset dataset = RDFParser.fromString("""
 				<https://example.com/member> <https://example.com/default> "default" .
 				<https://example.com/member> <https://example.com/named> "named" <https://example.com/member> .
-				""")
-				.lang(Lang.NQUADS)
+				""", Lang.NQUADS)
 				.toDataset();
 		final LocalDateTime createdAt = LocalDateTime.of(2026, 7, 25, 12, 0);
 		final MemberRecord member = new MemberRecord(

@@ -39,8 +39,7 @@ class ModelResponseTest {
 				    <https://example.com/member/selected> ex:value "named graph" .
 				    <https://example.com/payload-part> ex:value "all member graph quads" .
 				}
-				""")
-				.lang(Lang.TRIG)
+				""", Lang.TRIG)
 				.toDataset();
 		final Dataset expected = RDFParser.fromString("""
 				<https://example.com/member/selected> <https://example.com/vocab/value> "default" .
@@ -50,8 +49,7 @@ class ModelResponseTest {
 				_:second <https://example.com/vocab/value> "nested" .
 				<https://example.com/member/selected> <https://example.com/vocab/value> "named graph" <https://example.com/member/selected> .
 				<https://example.com/payload-part> <https://example.com/vocab/value> "all member graph quads" <https://example.com/member/selected> .
-				""")
-				.lang(Lang.NQUADS)
+				""", Lang.NQUADS)
 				.toDataset();
 
 		final var members = new ModelResponse(
