@@ -3,11 +3,12 @@
     <parent>
         <groupId>org.openldes.ldi</groupId>
         <artifactId>ldi-nifi</artifactId>
-        <version>3.2.1-SNAPSHOT</version>
+        <version>3.2.3-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>ldi-nifi-common</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
 
     <properties>
         <nifi-dbcp.version>2.1.0</nifi-dbcp.version>

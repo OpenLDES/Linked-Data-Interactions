@@ -6,11 +6,12 @@
     <parent>
         <groupId>org.openldes</groupId>
         <artifactId>linked-data-interactions</artifactId>
-        <version>3.2.1-SNAPSHOT</version>
+        <version>3.2.3-SNAPSHOT</version>
     </parent>
 
     <groupId>org.openldes.ldi</groupId>
     <artifactId>ldi-extensions</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
     <packaging>pom</packaging>
     <modules>
         <module>ldes-discoverer</module>
