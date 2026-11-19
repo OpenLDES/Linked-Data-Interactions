@@ -20,7 +20,7 @@ jobs:
     name: build
     # Pushes to develop are already built by 2.a, including updates to the develop -> main PR.
     if: ${{ !(github.event_name == 'pull_request' && github.event.action == 'synchronize' && github.head_ref == 'develop' && github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.determine-version.outputs.version }}
     steps:
@@ -71,7 +71,7 @@ jobs:
 
   build-and-scan-image:
     name: Build and scan ${{ matrix.image }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build
     permissions:
       contents: read
