@@ -100,9 +100,10 @@
         <mockito-core.version>5.14.2</mockito-core.version>
         <mockito-junit.version>5.14.2</mockito-junit.version>
         <cucumber.version>7.20.1</cucumber.version>
-        <testcontainers.version>1.19.6</testcontainers.version>
-        <testcontainers-postgresql.version>1.20.2</testcontainers-postgresql.version>
-        <testcontainers-mssqlserver.version>1.20.2</testcontainers-mssqlserver.version>
+        <!-- 1.21.4+ is required for Docker Engine 29 (minimum API version 1.44), e.g. on GitHub runners -->
+        <testcontainers.version>1.21.4</testcontainers.version>
+        <testcontainers-postgresql.version>${testcontainers.version}</testcontainers-postgresql.version>
+        <testcontainers-mssqlserver.version>${testcontainers.version}</testcontainers-mssqlserver.version>
         <slf4j.version>2.0.7</slf4j.version>
         <logback-classic.version>1.4.11</logback-classic.version>
         <!-- Jacoco -->
@@ -203,6 +204,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!-- LDI components -->
             <dependency>
                 <groupId>org.openldes.ldi</groupId>

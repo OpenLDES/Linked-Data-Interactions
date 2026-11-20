@@ -17,17 +17,36 @@ class HttpStatusRetryPredicateTest {
 	}
 
 	@Test
-	void should_ReturnTrue_when_ResponseStatusIsGreaterOrEqualsThan500() {
-		Response response500 = new Response(null, List.of(), 500, (String) null);
-		Response response502 = new Response(null, List.of(), 502, (String) null);
-		assertTrue(new HttpStatusRetryPredicate(List.of()).test(response500));
-		assertTrue(new HttpStatusRetryPredicate(List.of()).test(response502));
+	void should_ReturnTrue_when_ResponseStatusIsRetryableServerError() {
+		for (int status : List.of(500, 502, 503, 504)) {
+			Response response = new Response(null, List.of(), status, (String) null);
+			assertTrue(new HttpStatusRetryPredicate(List.of()).test(response),
+					"expected status " + status + " to be retried");
+		}
+	}
+
+	@Test
+	void should_ReturnFalse_when_ResponseStatusIsTerminalServerError() {
+		for (int status : List.of(501, 505)) {
+			Response response = new Response(null, List.of(), status, (String) null);
+			assertFalse(new HttpStatusRetryPredicate(List.of()).test(response),
+					"expected status " + status + " to be terminal");
+		}
 	}
 
 	@Test
 	void should_ReturnTrue_when_ResponseStatusIsTooManyRequests() {
 		Response response = new Response(null, List.of(), 429, (String) null);
 		assertTrue(new HttpStatusRetryPredicate(List.of()).test(response));
+	}
+
+	@Test
+	void should_ReturnTrue_when_ResponseStatusIsLdesRetryableClientError() {
+		Response response408 = new Response(null, List.of(), 408, (String) null);
+		Response response425 = new Response(null, List.of(), 425, (String) null);
+
+		assertTrue(new HttpStatusRetryPredicate(List.of()).test(response408));
+		assertTrue(new HttpStatusRetryPredicate(List.of()).test(response425));
 	}
 
 	@Test
@@ -40,6 +59,12 @@ class HttpStatusRetryPredicateTest {
 	@Test
 	void should_ReturnFalse_when_StatusIsValid() {
 		Response response = new Response(null, List.of(), 200, (String) null);
+		assertFalse(new HttpStatusRetryPredicate(List.of()).test(response));
+	}
+
+	@Test
+	void should_ReturnFalse_when_StatusIsTerminalClientError() {
+		Response response = new Response(null, List.of(), 404, (String) null);
 		assertFalse(new HttpStatusRetryPredicate(List.of()).test(response));
 	}
 }

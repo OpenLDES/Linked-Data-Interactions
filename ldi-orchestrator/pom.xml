@@ -22,6 +22,14 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Declared before Spring Boot so its Testcontainers version takes precedence -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!-- SPRING BOOT -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>

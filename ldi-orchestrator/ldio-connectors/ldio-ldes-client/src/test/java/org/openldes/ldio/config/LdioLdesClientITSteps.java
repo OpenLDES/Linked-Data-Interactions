@@ -6,6 +6,7 @@ import org.openldes.ldio.management.status.ClientStatusService;
 import org.openldes.ldio.pipeline.creation.valueobjects.ComponentProperties;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import io.cucumber.java.BeforeAll;
+import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -38,6 +39,13 @@ public class LdioLdesClientITSteps extends LdesClientInIT {
 	@BeforeAll
 	public static void before_all() {
 		wireMockServer.start();
+	}
+
+	@Before
+	public void before() {
+		componentPropsMap.clear();
+		members.clear();
+		reset(statusService);
 	}
 
 	@Given("I want to follow the following LDES")

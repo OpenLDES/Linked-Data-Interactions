@@ -44,4 +44,14 @@ class ExactlyOnceMemberSupplierWrapperTest {
 		assertThat(memberSupplier).isSameAs(baseSupplier);
 	}
 
+	@Test
+	void given_OrderedTraversalEnabled_when_wrap_then_ReturnBaseMemberSupplier() {
+		when(ldioLdesClientProperties.isExactlyOnceEnabled()).thenReturn(true);
+		when(ldioLdesClientProperties.isOrderedEnabled()).thenReturn(true);
+
+		final MemberSupplier memberSupplier = exactlyOnceMemberSupplierWrapper.wrapMemberSupplier(baseSupplier);
+
+		assertThat(memberSupplier).isSameAs(baseSupplier);
+	}
+
 }

@@ -1,9 +1,13 @@
 package org.openldes.ldi.requestexecutor.services;
 
 import org.openldes.ldi.requestexecutor.executor.RequestExecutor;
+import org.openldes.ldi.requestexecutor.executor.RetryableRequestExecutor;
+import org.openldes.ldi.requestexecutor.executor.retry.RetryConfig;
 import io.github.resilience4j.decorators.Decorators;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.retry.Retry;
+
+import java.util.List;
 
 public class RequestExecutorDecorator {
 
@@ -19,6 +23,16 @@ public class RequestExecutorDecorator {
 		return new RequestExecutorDecorator(requestExecutor);
 	}
 
+	public static RequestExecutor withDefaultRetryPolicy(RequestExecutor requestExecutor) {
+		if (requestExecutor instanceof RetryableRequestExecutor) {
+			return requestExecutor;
+		}
+
+		return decorate(requestExecutor)
+				.with(RetryConfig.of(RetryConfig.DEFAULT_MAX_ATTEMPTS, List.of()).getRetry())
+				.get();
+	}
+
 	public RequestExecutorDecorator with(Retry retry) {
 		this.retry = retry;
 		return this;
@@ -31,7 +45,7 @@ public class RequestExecutorDecorator {
 
 	public RequestExecutor get() {
 		if (retry != null && rateLimiter != null) {
-			return request -> Decorators
+			return (RetryableRequestExecutor) request -> Decorators
 					.ofSupplier(() -> requestExecutor.execute(request))
 					.withRateLimiter(rateLimiter)
 					.withRetry(retry)
@@ -39,7 +53,7 @@ public class RequestExecutorDecorator {
 		}
 
 		if (retry != null) {
-			return request -> Decorators
+			return (RetryableRequestExecutor) request -> Decorators
 					.ofSupplier(() -> requestExecutor.execute(request))
 					.withRetry(retry)
 					.get();

@@ -16,7 +16,7 @@
         <qpid-jms-client.version>2.5.0</qpid-jms-client.version>
         <spring-jms.version>6.1.3</spring-jms.version>
         <!-- Test Dependencies -->
-        <activemq-container.version>1.19.4</activemq-container.version>
+        <activemq-container.version>${testcontainers.version}</activemq-container.version>
         <activemq-client.version>6.0.1</activemq-client.version>
     </properties>
 

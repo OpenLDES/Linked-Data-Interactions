@@ -124,8 +124,8 @@
             "repeatFrequency": "P1M",
             "until": null,
             "repeatCount": 12,
-            "startTime": "11:09Z",
-            "endTime": "11:09Z",
+            "startTime": "11:09:00Z",
+            "endTime": "11:09:00Z",
             "duration": "P2D",
             "byDay": null,
             "byMonth": [
