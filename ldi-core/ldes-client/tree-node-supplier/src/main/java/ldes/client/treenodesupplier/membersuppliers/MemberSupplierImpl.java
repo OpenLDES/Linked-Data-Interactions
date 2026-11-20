@@ -38,7 +38,14 @@ public class MemberSupplierImpl implements MemberSupplier {
 			return;
 		}
 		removeShutdownHook();
-		if (!keepState && treeNodeProcessor != null) {
+		if (treeNodeProcessor == null) {
+			return;
+		}
+		if (keepState) {
+			// Records which members were already supplied, so resuming does not
+			// supply them again.
+			treeNodeProcessor.flushState();
+		} else {
 			treeNodeProcessor.destroyState();
 		}
 	}

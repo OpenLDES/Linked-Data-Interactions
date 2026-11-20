@@ -5,18 +5,26 @@ import ldes.client.treenodesupplier.domain.valueobject.TreeNodeStatus;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public class TreeNodeRecord {
 	private final String treeNodeUrl;
 	private TreeNodeStatus treeNodeStatus;
 	private LocalDateTime earliestNextVisit;
-	private final List<String> memberIds;
+	/**
+	 * The ids of the received members, kept as a set so recognising an already
+	 * received member does not scan every id of a fragment that holds many.
+	 * Insertion order is retained because the order the members were received in
+	 * is the most useful one to persist.
+	 */
+	private final Set<String> memberIds;
 	private String etag;
 
 	public TreeNodeRecord(String treeNodeUrl) {
-		this(treeNodeUrl, TreeNodeStatus.NOT_VISITED, LocalDateTime.now(), new ArrayList<>());
+		this(treeNodeUrl, TreeNodeStatus.NOT_VISITED, LocalDateTime.now(), List.of());
 	}
 
 	public TreeNodeRecord(String treeNodeUrl, TreeNodeStatus treeNodeStatus, LocalDateTime earliestNextVisit, List<String> memberIds) {
@@ -27,7 +35,7 @@ public class TreeNodeRecord {
 		this.treeNodeUrl = treeNodeUrl;
 		this.treeNodeStatus = treeNodeStatus;
 		this.earliestNextVisit = earliestNextVisit;
-		this.memberIds = memberIds;
+		this.memberIds = memberIds == null ? new LinkedHashSet<>() : new LinkedHashSet<>(memberIds);
 		this.etag = etag;
 	}
 
@@ -53,10 +61,12 @@ public class TreeNodeRecord {
 	}
 
 	/**
-	 * @return a list of all the id of all the members that are part of this TreeNode
+	 * @return a list of all the id of all the members that are part of this TreeNode.
+	 * The list is a modifiable copy, because the persistence layer takes ownership
+	 * of it and adds to it.
 	 */
 	public List<String> getMemberIds() {
-		return memberIds;
+		return new ArrayList<>(memberIds);
 	}
 
 	public String getEtag() {
